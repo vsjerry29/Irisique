@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useRef, useCallback } from "react";
+import React, { useEffect, useRef, useState, useCallback } from "react";
 import * as THREE from "three";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
@@ -9,6 +9,7 @@ import {
   irisLabFragmentShader,
 } from "../iris-lab/shaders.glsl";
 import HeroUI from "./HeroUI";
+import IrisGallery from "../home/IrisGallery";
 
 if (typeof window !== "undefined") {
   gsap.registerPlugin(ScrollTrigger);
@@ -110,7 +111,7 @@ const LAYER_SPECS: LayerSpec[] = [
     sepOffset: { x: 0.10, y: 0.16, z: 1.20, rotZ: THREE.MathUtils.degToRad(9), rotX: -0.05, rotY: -0.05, scale: 1.32 },
     finalOffset: { x: 0.42, y: 0.50, z: 0.70, rotZ: THREE.MathUtils.degToRad(16), rotX: -0.05, rotY: -0.06, scale: 1.42, opacity: 0.85 },
   },
-  // Layer A: Outer Limbal Boundary (3 arc fragments, recedes into dark perimeter and dissolves)
+  // Layer A: Outer Limbal Boundary (3 arc fragments, framing perimeter)
   {
     id: "layer_a1_limbus_arc1",
     file: "/assets/iris/layers/layer_a1_limbus_arc1.webp",
@@ -149,7 +150,22 @@ export default function UnifiedIrisHero({
   const containerRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const heroTextRef = useRef<HTMLDivElement>(null);
+  const galleryOverlayRef = useRef<HTMLDivElement>(null);
+  const debugHudRef = useRef<HTMLDivElement>(null);
+  const debugReticleRef = useRef<HTMLDivElement>(null);
+  const debugEnabledRef = useRef(false);
   const cleanupRef = useRef<(() => void) | null>(null);
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      if (params.get("irisDebug") === "1" || (window as any).__irisDebug) {
+        debugEnabledRef.current = true;
+        if (debugHudRef.current) debugHudRef.current.classList.remove("hidden");
+        if (debugReticleRef.current) debugReticleRef.current.classList.remove("hidden");
+      }
+    }
+  }, []);
 
   const initExperience = useCallback(() => {
     const container = containerRef.current;
@@ -186,7 +202,7 @@ export default function UnifiedIrisHero({
     const scene = new THREE.Scene();
     scene.background = new THREE.Color("#020304");
 
-    // Perspective Camera: FOV 44 matches the exact basePlaneGeo proportion
+    // Perspective Camera: FOV 44 matches the basePlaneGeo proportion
     const camera = new THREE.PerspectiveCamera(44, width / height, 0.1, 100);
     camera.position.set(0, 0, isMobile ? 7.2 : 6.2);
 
@@ -269,7 +285,7 @@ export default function UnifiedIrisHero({
 
     // ─── 4. Stage Elements ───
 
-    // A. Atmospheric Background Fog (Codrops 'The Sleepers' Inspired)
+    // A. Atmospheric Procedural Fog Plane (Background depth)
     const fogVertexShader = `
       varying vec2 vUv;
       void main() {
@@ -292,8 +308,9 @@ export default function UnifiedIrisHero({
       vec3 permute(vec3 x) { return mod289(((x * 34.0) + 1.0) * x); }
 
       float snoise(vec2 v) {
-        const vec4 C = vec4(0.211324865405187, 0.366025403784439, -0.577350269189626, 0.024390243902439);
-        vec2 i = floor(v + dot(v, C.yy));
+        const vec4 C = vec4(0.211324865405187, 0.366025403784439,
+                           -0.577350269189626, 0.024390243902439);
+        vec2 i  = floor(v + dot(v, C.yy));
         vec2 x0 = v - i + dot(i, C.xx);
         vec2 i1 = (x0.x > x0.y) ? vec2(1.0, 0.0) : vec2(0.0, 1.0);
         vec4 x12 = x0.xyxy + C.xxzz;
@@ -357,7 +374,7 @@ export default function UnifiedIrisHero({
     fogMesh.renderOrder = -100;
     scene.add(fogMesh);
 
-    // B. Microscopic Depth Particles
+    // B. Microscopic Depth Particles (400 floating stroma particles)
     const PARTICLE_COUNT = 400;
     const particleGeo = new THREE.BufferGeometry();
     const particlePositions = new Float32Array(PARTICLE_COUNT * 3);
@@ -408,9 +425,10 @@ export default function UnifiedIrisHero({
       blending: THREE.AdditiveBlending,
     });
     const particles = new THREE.Points(particleGeo, particleMaterial);
+    particles.renderOrder = 40;
     scene.add(particles);
 
-    // C. 11 3D Photographic Stroma Layers
+    // C. 11 3D Anatomical Layer Meshes
     const masterLayerGroup = new THREE.Group();
     scene.add(masterLayerGroup);
 
@@ -440,6 +458,10 @@ export default function UnifiedIrisHero({
       uniform float uErosion;
       uniform float uRefractShift;
       uniform float uHighlight;
+      uniform float uClickProgress;
+      uniform vec2 uClickOrigin;
+      uniform vec2 uPointerUV;
+      uniform float uPointerActive;
 
       void main() {
         vec2 uv = vUv;
@@ -461,6 +483,21 @@ export default function UnifiedIrisHero({
           float noiseCut = (texColor.r + texColor.g + texColor.b) * 0.333;
           if (noiseCut < uErosion) discard;
         }
+
+        // Tactile Cursor Highlight on 3D Layer
+        if (uPointerActive > 0.001) {
+          float distCursor = length(uv - uPointerUV);
+          float hoverHighlight = smoothstep(0.18, 0.0, distCursor) * uPointerActive * 0.35;
+          texColor.rgb += vec3(0.08, 0.15, 0.22) * hoverHighlight;
+        }
+
+        // Tactile Click Optical Wave on 3D Layer
+        if (uClickProgress > 0.001 && uClickProgress < 1.0) {
+          float distClick = length(uv - uClickOrigin);
+          float clickWave = exp(-pow((distClick - uClickProgress * 0.35) / 0.055, 2.0)) * (1.0 - uClickProgress);
+          texColor.rgb += vec3(0.20, 0.38, 0.50) * clickWave * 0.85;
+        }
+
         texColor.rgb += uHighlight * 0.25;
         gl_FragColor = vec4(texColor.rgb, texColor.a * uOpacity);
       }
@@ -479,6 +516,10 @@ export default function UnifiedIrisHero({
           uErosion: { value: 0.0 },
           uRefractShift: { value: 0.0 },
           uHighlight: { value: 0.0 },
+          uClickProgress: { value: 0.0 },
+          uClickOrigin: { value: new THREE.Vector2(0.5, 0.5) },
+          uPointerUV: { value: new THREE.Vector2(-10, -10) },
+          uPointerActive: { value: 0.0 },
         },
         transparent: true,
         depthWrite: false,
@@ -490,6 +531,7 @@ export default function UnifiedIrisHero({
       const mesh = new THREE.Mesh(basePlaneGeo, mat);
       mesh.renderOrder = spec.renderOrder;
       mesh.position.set(0, 0, 0);
+      (mesh as any).specId = spec.id;
       masterLayerGroup.add(mesh);
       layerItems.push({ mesh, spec, material: mat });
     });
@@ -505,15 +547,15 @@ export default function UnifiedIrisHero({
       uIntroZoom: { value: 5.2 },
       uCameraTarget: { value: new THREE.Vector2(-0.16, 0.20) },
       uScreenPointer: { value: new THREE.Vector2(-10, -10) },
-      uPointerActive: { value: 0 },
-      uPointerVelocity: { value: 0 },
+      uPointerActive: { value: 0.0 },
+      uPointerVelocity: { value: 0.0 },
       uResolution: { value: new THREE.Vector2(width * dpr, height * dpr) },
       uScrollProgress: { value: 0 },
       uScrollRotation: { value: 0 },
       uIrisOffset: { value: new THREE.Vector2(0, 0) },
       uIrisScale: { value: 1.0 },
       uReducedMotion: { value: prefersReducedMotion ? 1.0 : 0.0 },
-      uClickProgress: { value: 0 },
+      uClickProgress: { value: 0.0 },
       uClickOrigin: { value: new THREE.Vector2(0.5, 0.5) },
       uMasterOpacity: { value: 1.0 },
     };
@@ -556,37 +598,210 @@ export default function UnifiedIrisHero({
     };
     window.addEventListener("resize", onResize);
 
-    // ─── 6. Tactile Mouse / Touch Coordinates ───
+    // ─── 6. High-Precision Pointer Coordinates & Surface Raycasting ───
     const mouse = new THREE.Vector2(0, 0);
     const targetScreenPointer = new THREE.Vector2(-10, -10);
+    const targetLayerUV = new THREE.Vector2(-10, -10);
+    const raycaster = new THREE.Raycaster();
+    const tempNdc = new THREE.Vector2();
+
+    let lastPointerX = 0;
+    let lastPointerY = 0;
+    let lastPointerTime = performance.now();
+    let currentPointerVelocity = 0;
+    let pointerActiveTarget = 0.0;
+    let revealOrigin = { x: 0.5, y: 0.5 };
+
+    // Master Scroll Canonical State
+    const canonicalState = {
+      p: 0.0, // Canonical scroll progress 0.00 -> 1.00
+    };
+
+    // Rigorous Coordinate Resolver
+    const resolvePointerOnIris = (clientX: number, clientY: number) => {
+      const rect = canvas.getBoundingClientRect();
+      if (
+        clientX < rect.left ||
+        clientX > rect.right ||
+        clientY < rect.top ||
+        clientY > rect.bottom
+      ) {
+        return { isHit: false, ndcX: 0, ndcY: 0, screenX: -10, screenY: -10, texU: 0.5, texV: 0.5, hitObject: "outside" };
+      }
+
+      // Convert clientX / clientY into true NDC in [-1, 1] WITHOUT DPR multiplication
+      const ndcX = ((clientX - rect.left) / rect.width) * 2.0 - 1.0;
+      const ndcY = -(((clientY - rect.top) / rect.height) * 2.0 - 1.0);
+
+      const aspect = rect.width / rect.height;
+      let screenX = ndcX * 0.5;
+      let screenY = ndcY * 0.5;
+      if (aspect >= 1.0) {
+        screenX *= aspect;
+      } else {
+        screenY /= aspect;
+      }
+
+      const p = canonicalState.p;
+
+      // Phase 1 & 2: Macro Quad Analytical Projection (Exact inverse of irisLabFragmentShader)
+      if (p <= 0.22) {
+        const centeredX = screenX - macroUniforms.uIrisOffset.value.x;
+        const centeredY = screenY - macroUniforms.uIrisOffset.value.y;
+
+        const rotAngle = -macroUniforms.uScrollRotation.value;
+        const cosR = Math.cos(rotAngle);
+        const sinR = Math.sin(rotAngle);
+        const rotatedX = cosR * centeredX - sinR * centeredY;
+        const rotatedY = sinR * centeredX + cosR * centeredY;
+
+        const baseRadius = 0.465;
+        const currentScale = Math.max(macroUniforms.uIrisScale.value, 0.05);
+        const irisNormX = rotatedX / (baseRadius * 2.0 * currentScale);
+        const irisNormY = rotatedY / (baseRadius * 2.0 * currentScale);
+
+        const distFromCenter = Math.hypot(irisNormX, irisNormY);
+        // Visible iris boundary radius is 0.5 (radius 0.465 + outer limbal feather)
+        const isHit = distFromCenter <= 0.52;
+
+        const totalZoom = macroUniforms.uIntroZoom.value;
+        const texU = (irisNormX / totalZoom) + 0.5 + macroUniforms.uCameraTarget.value.x;
+        const texV = (irisNormY / totalZoom) + 0.5 + macroUniforms.uCameraTarget.value.y;
+
+        return {
+          isHit,
+          ndcX,
+          ndcY,
+          screenX,
+          screenY,
+          texU,
+          texV,
+          hitObject: isHit ? "macroQuad (stroma)" : "outside",
+        };
+      }
+
+      // Phase 3..6: 3D Layer Meshes Raycasting
+      tempNdc.set(ndcX, ndcY);
+      raycaster.setFromCamera(tempNdc, camera);
+      const hits = raycaster.intersectObjects(masterLayerGroup.children, false);
+
+      if (hits.length > 0) {
+        const firstHit = hits[0];
+        const uv = firstHit.uv || new THREE.Vector2(0.5, 0.5);
+        const hitName = (firstHit.object as any).specId || "3D Stroma Layer";
+        return {
+          isHit: true,
+          ndcX,
+          ndcY,
+          screenX,
+          screenY,
+          texU: uv.x,
+          texV: uv.y,
+          hitObject: hitName,
+        };
+      }
+
+      return {
+        isHit: false,
+        ndcX,
+        ndcY,
+        screenX,
+        screenY,
+        texU: 0.5,
+        texV: 0.5,
+        hitObject: "outside",
+      };
+    };
 
     const onMouseMove = (e: MouseEvent) => {
       if (isTouchDevice) return;
-      const rect = canvas.getBoundingClientRect();
-      const nx = (e.clientX - rect.left) / rect.width - 0.5;
-      const ny = -((e.clientY - rect.top) / rect.height - 0.5);
-      const aspect = width / height;
-      const isoX = aspect >= 1.0 ? nx * aspect : nx;
-      const isoY = aspect >= 1.0 ? ny : ny / aspect;
+      const target = e.target as HTMLElement | null;
+      if (target && target.closest("header, nav, button, a, [role='button'], #gallery button, #gallery a")) {
+        pointerActiveTarget = 0.0;
+        return;
+      }
 
-      targetScreenPointer.set(isoX, isoY);
+      const now = performance.now();
+      const dt = Math.max(now - lastPointerTime, 8);
+      const dist = Math.hypot(e.clientX - lastPointerX, e.clientY - lastPointerY);
+      currentPointerVelocity = Math.min((dist / dt) * 1.5, 3.0);
+      lastPointerX = e.clientX;
+      lastPointerY = e.clientY;
+      lastPointerTime = now;
+
+      const hit = resolvePointerOnIris(e.clientX, e.clientY);
+      if (hit.isHit) {
+        pointerActiveTarget = 1.0;
+        targetScreenPointer.set(hit.screenX, hit.screenY);
+        targetLayerUV.set(hit.texU, hit.texV);
+      } else {
+        pointerActiveTarget = 0.0;
+      }
+
       mouse.x = (e.clientX / width) * 2 - 1;
       mouse.y = (e.clientY / height) * 2 - 1;
+
+      // Debug telemetry update (?irisDebug=1) via direct DOM (zero React re-renders)
+      if (debugEnabledRef.current) {
+        if (debugHudRef.current && debugHudRef.current.classList.contains("hidden")) {
+          debugHudRef.current.classList.remove("hidden");
+        }
+        if (debugReticleRef.current && debugReticleRef.current.classList.contains("hidden")) {
+          debugReticleRef.current.classList.remove("hidden");
+        }
+        if (debugReticleRef.current) {
+          debugReticleRef.current.style.left = `${e.clientX}px`;
+          debugReticleRef.current.style.top = `${e.clientY}px`;
+        }
+        const elScreen = document.getElementById("dbg-screen");
+        if (elScreen) elScreen.textContent = `${Math.round(e.clientX)}px, ${Math.round(e.clientY)}px`;
+        const elNdc = document.getElementById("dbg-ndc");
+        if (elNdc) elNdc.textContent = `${hit.ndcX.toFixed(3)}, ${hit.ndcY.toFixed(3)}`;
+        const elUv = document.getElementById("dbg-uv");
+        if (elUv) elUv.textContent = `${hit.texU.toFixed(3)}, ${hit.texV.toFixed(3)}`;
+        const elHit = document.getElementById("dbg-hit");
+        if (elHit) elHit.textContent = hit.hitObject;
+        const elHover = document.getElementById("dbg-hover");
+        if (elHover) elHover.textContent = macroUniforms.uPointerActive.value.toFixed(2);
+        const elOrigin = document.getElementById("dbg-origin");
+        if (elOrigin) elOrigin.textContent = `${revealOrigin.x.toFixed(3)}, ${revealOrigin.y.toFixed(3)}`;
+        const elScroll = document.getElementById("dbg-scroll");
+        if (elScroll) elScroll.textContent = `${(canonicalState.p * 100).toFixed(1)}%`;
+        const elReticle = document.getElementById("dbg-reticle-label");
+        if (elReticle) elReticle.textContent = `UV: (${hit.texU.toFixed(2)}, ${hit.texV.toFixed(2)})`;
+      }
+    };
+
+    const onMouseLeave = () => {
+      pointerActiveTarget = 0.0;
+      currentPointerVelocity = 0;
+      targetScreenPointer.set(-10, -10);
+      targetLayerUV.set(-10, -10);
     };
 
     window.addEventListener("mousemove", onMouseMove);
+    canvas.addEventListener("mouseleave", onMouseLeave);
 
-    // Click Ripple Impulse
+    // Click Ripple Impulse with Localized Origin
     const triggerClickAt = (clientX: number, clientY: number) => {
-      const rect = canvas.getBoundingClientRect();
-      const nx = (clientX - rect.left) / rect.width;
-      const ny = (clientY - rect.top) / rect.height;
-      macroUniforms.uClickOrigin.value.set(nx, ny);
+      const hit = resolvePointerOnIris(clientX, clientY);
+      if (!hit.isHit) {
+        // Outside the iris: do NOT trigger click reveal (Part 3 requirement)
+        return;
+      }
+
+      revealOrigin = { x: hit.texU, y: hit.texV };
+      macroUniforms.uClickOrigin.value.set(hit.texU, hit.texV);
+
+      layerItems.forEach((item) => {
+        item.material.uniforms.uClickOrigin.value.set(hit.texU, hit.texV);
+      });
+
       gsap.killTweensOf(macroUniforms.uClickProgress);
       macroUniforms.uClickProgress.value = 0.0;
       gsap.to(macroUniforms.uClickProgress, {
         value: 1.0,
-        duration: 1.15,
+        duration: 1.25,
         ease: "power2.out",
         onComplete: () => {
           macroUniforms.uClickProgress.value = 0.0;
@@ -595,6 +810,10 @@ export default function UnifiedIrisHero({
     };
 
     const onClick = (e: MouseEvent) => {
+      const target = e.target as HTMLElement | null;
+      if (target && target.closest("header, nav, button, a, [role='button'], #gallery button, #gallery a")) {
+        return;
+      }
       if (introTimeline && introTimeline.progress() < 1.0 && !introTimeline.paused()) {
         introTimeline.progress(1.0);
         return;
@@ -670,39 +889,39 @@ export default function UnifiedIrisHero({
         );
       }
 
-      // 0.60–1.60s: Microscopic Exploration
+      // 0.60–1.80s: Stroma Cavity Travel (pullback 5.0 -> 2.6)
       introTimeline.to(
         introState,
         {
-          progress: 0.35,
-          zoom: 4.0,
+          progress: 0.48,
+          zoom: 2.6,
           targetX: -0.06,
-          targetY: 0.12,
-          duration: 1.00,
-          ease: "power1.inOut",
+          targetY: 0.08,
+          duration: 1.20,
+          ease: "power2.inOut",
         },
         0.60
       );
 
-      // 1.60–2.90s: Dramatic Pullback Reveal
+      // 1.80–2.90s: Collarette Reveal (pullback 2.6 -> 1.35)
       introTimeline.to(
         introState,
         {
-          progress: 0.82,
-          zoom: 1.25,
-          targetX: 0.010,
-          targetY: 0.005,
-          duration: 1.30,
-          ease: "power2.inOut",
+          progress: 0.76,
+          zoom: 1.35,
+          targetX: -0.02,
+          targetY: 0.02,
+          duration: 1.10,
+          ease: "power2.out",
         },
-        1.60
+        1.80
       );
 
-      // 2.90–3.50s: Full Iris Settle
+      // 2.90–3.50s: Full Macroscopic Iris Settles (pullback 1.35 -> 1.00)
       introTimeline.to(
         introState,
         {
-          progress: 0.96,
+          progress: 0.94,
           zoom: 1.00,
           targetX: 0.0,
           targetY: 0.0,
@@ -741,6 +960,7 @@ export default function UnifiedIrisHero({
       macroUniforms.uMasterOpacity.value = 1.0;
 
       if (heroTextRef.current) gsap.set(heroTextRef.current, { opacity: 0, y: 16 });
+      if (galleryOverlayRef.current) gsap.set(galleryOverlayRef.current, { opacity: 0 });
 
       renderer.render(scene, camera);
 
@@ -756,17 +976,13 @@ export default function UnifiedIrisHero({
     tryStartEntrance();
 
     // ─── 8. UNIFIED MASTER SCROLL CHOREOGRAPHY (One Persistent Pinned Stage) ───
-    const canonicalState = {
-      p: 0.0, // Canonical scroll progress 0.00 -> 1.00
-    };
-
     const scrollTimeline = gsap.timeline({
       scrollTrigger: {
         trigger: container,
         pin: true,
         pinSpacing: true,
         start: "top top",
-        end: "+=220%", // Unified 220vh travel for the entire journey
+        end: "+=260%", // Unified 260vh travel for the entire journey through Gallery
         scrub: 0.6,   // Liquid-smooth 0.6s catchup
         invalidateOnRefresh: true,
         refreshPriority: 10,
@@ -779,6 +995,15 @@ export default function UnifiedIrisHero({
           // Reverse scroll restoration: Restore hero typography at top
           if (self.progress <= 0.02 && introTimeline && introTimeline.progress() >= 0.5) {
             if (heroTextRef.current) gsap.set(heroTextRef.current, { opacity: 1, y: 0 });
+          }
+
+          // Gallery overlay pointer interactivity toggle
+          if (galleryOverlayRef.current) {
+            if (self.progress >= 0.88) {
+              galleryOverlayRef.current.style.pointerEvents = "auto";
+            } else {
+              galleryOverlayRef.current.style.pointerEvents = "none";
+            }
           }
         },
       },
@@ -804,6 +1029,23 @@ export default function UnifiedIrisHero({
       );
     }
 
+    // ── Phase 6: Seamless Gallery Emergence through Atmosphere (0.82 – 0.96) ──
+    // Zero sliding rectangular box, zero canvas clipping, zero seam!
+    if (galleryOverlayRef.current) {
+      scrollTimeline.fromTo(
+        galleryOverlayRef.current,
+        { opacity: 0, scale: 0.97 },
+        {
+          opacity: 1,
+          scale: 1.0,
+          duration: 0.16,
+          ease: "power2.inOut",
+          immediateRender: false,
+        },
+        0.82
+      );
+    }
+
     // ─── 9. Continuous Frame Evaluator ───
     const evaluateScene = (p: number, elapsed: number) => {
       const mobile = isMobile;
@@ -811,7 +1053,7 @@ export default function UnifiedIrisHero({
       const targetCurve = mobile ? targetCurveMobile : targetCurveDesktop;
 
       // ── PHASE 02: Scroll Activation (0% – 15%) ──
-      // Clockwise rotation begins, iris remains visible, fog starts developing
+      // Clockwise rotation begins, iris remains visible, living motion active
       const scrollRotation = p * THREE.MathUtils.degToRad(70);
       macroUniforms.uScrollRotation.value = scrollRotation;
       masterLayerGroup.rotation.z = -scrollRotation;
@@ -977,6 +1219,26 @@ export default function UnifiedIrisHero({
       macroUniforms.uIntroZoom.value = introState.zoom;
       macroUniforms.uCameraTarget.value.set(introState.targetX, introState.targetY);
 
+      // Smooth pointer tracking & hover decay
+      macroUniforms.uScreenPointer.value.lerp(targetScreenPointer, 0.25);
+      macroUniforms.uPointerActive.value = THREE.MathUtils.lerp(
+        macroUniforms.uPointerActive.value,
+        pointerActiveTarget,
+        0.15
+      );
+      macroUniforms.uPointerVelocity.value = THREE.MathUtils.lerp(
+        macroUniforms.uPointerVelocity.value,
+        currentPointerVelocity,
+        0.15
+      );
+
+      // Propagate pointer to 3D layers
+      layerItems.forEach((item) => {
+        item.material.uniforms.uPointerUV.value.lerp(targetLayerUV, 0.25);
+        item.material.uniforms.uPointerActive.value = macroUniforms.uPointerActive.value;
+        item.material.uniforms.uClickProgress.value = macroUniforms.uClickProgress.value;
+      });
+
       // Evaluate combined master choreography
       evaluateScene(canonicalState.p, elapsed);
 
@@ -994,11 +1256,25 @@ export default function UnifiedIrisHero({
       startEntrance();
     };
 
+    // Expose debug toggle
+    (window as any).__setIrisDebug = (val: boolean) => {
+      debugEnabledRef.current = val;
+      if (debugHudRef.current) {
+        if (val) debugHudRef.current.classList.remove("hidden");
+        else debugHudRef.current.classList.add("hidden");
+      }
+      if (debugReticleRef.current) {
+        if (val) debugReticleRef.current.classList.remove("hidden");
+        else debugReticleRef.current.classList.add("hidden");
+      }
+    };
+
     // ─── Cleanup ───
     cleanupRef.current = () => {
       cancelAnimationFrame(animFrameId);
       window.removeEventListener("resize", onResize);
       window.removeEventListener("mousemove", onMouseMove);
+      canvas.removeEventListener("mouseleave", onMouseLeave);
       canvas.removeEventListener("click", onClick);
       window.removeEventListener("keydown", onKeyDown);
 
@@ -1021,19 +1297,25 @@ export default function UnifiedIrisHero({
   }, [onIntroComplete]);
 
   useEffect(() => {
-    initExperience();
+    let active = true;
+    const timer = setTimeout(() => {
+      if (active) initExperience();
+    }, 60);
+
     return () => {
+      active = false;
+      clearTimeout(timer);
       if (cleanupRef.current) cleanupRef.current();
     };
   }, [initExperience]);
 
   return (
-    <section
-      ref={containerRef}
-      id="explore"
-      data-section="unified-iris"
-      className={`relative z-20 w-full h-screen overflow-hidden bg-[#020304] select-none ${className}`}
-    >
+    <div id="explore" className="relative w-full bg-[#020304]">
+      <section
+        ref={containerRef}
+        data-section="unified-iris"
+        className={`relative z-20 w-full h-screen overflow-hidden bg-[#020304] select-none ${className}`}
+      >
       {/* Single Persistent WebGL Canvas Stage */}
       <canvas
         ref={canvasRef}
@@ -1047,6 +1329,74 @@ export default function UnifiedIrisHero({
       >
         <HeroUI />
       </div>
+
+      {/* Phase 6: Embedded Curated Gallery Exhibition (Emerges through atmosphere) */}
+      <div
+        ref={galleryOverlayRef}
+        className="pointer-events-none absolute inset-0 z-20 opacity-0 will-change-[opacity,transform]"
+      >
+        <IrisGallery isEmbedded={true} />
+      </div>
+
+      {/* Pointer Debug Telemetry Overlay (?irisDebug=1) */}
+      <div
+        ref={debugHudRef}
+        id="iris-debug-hud"
+        className="fixed bottom-6 left-6 z-50 bg-[#07090c]/90 border border-[#7ec8e3]/40 p-4 font-mono text-[11px] text-[#e0e8f0] shadow-[0_8px_32px_rgba(0,0,0,0.8)] backdrop-blur-md max-w-xs pointer-events-none hidden"
+      >
+        <div className="flex items-center justify-between border-b border-[#202838] pb-1.5 mb-2 text-[#7ec8e3] font-bold tracking-wider">
+          <span>IRIS POINTER HUD</span>
+          <span className="text-[9px] uppercase px-1.5 py-0.5 rounded bg-[#7ec8e3]/20">Active</span>
+        </div>
+        <div className="space-y-1">
+          <div className="flex justify-between">
+            <span className="text-[#8892a4]">Screen Pos:</span>
+            <span id="dbg-screen">0px, 0px</span>
+          </div>
+          <div className="flex justify-between">
+            <span className="text-[#8892a4]">NDC:</span>
+            <span id="dbg-ndc">0, 0</span>
+          </div>
+          <div className="flex justify-between">
+            <span className="text-[#8892a4]">Resolved UV:</span>
+            <span id="dbg-uv" className="text-[#7ec8e3] font-semibold">0.5, 0.5</span>
+          </div>
+          <div className="flex justify-between">
+            <span className="text-[#8892a4]">Hit Object:</span>
+            <span id="dbg-hit" className="truncate max-w-[140px] text-right">none</span>
+          </div>
+          <div className="flex justify-between">
+            <span className="text-[#8892a4]">Hover Intensity:</span>
+            <span id="dbg-hover">0</span>
+          </div>
+          <div className="flex justify-between">
+            <span className="text-[#8892a4]">Reveal Origin:</span>
+            <span id="dbg-origin" className="text-[#e09848]">0.5, 0.5</span>
+          </div>
+          <div className="flex justify-between">
+            <span className="text-[#8892a4]">Scroll Travel:</span>
+            <span id="dbg-scroll">0.0%</span>
+          </div>
+        </div>
+      </div>
+
+      <div
+        ref={debugReticleRef}
+        id="iris-debug-reticle"
+        className="fixed z-50 pointer-events-none -translate-x-1/2 -translate-y-1/2 hidden"
+        style={{ left: "-100px", top: "-100px" }}
+      >
+        <div className="relative w-8 h-8 flex items-center justify-center">
+          <span className="absolute w-6 h-6 rounded-full border border-[#7ec8e3] animate-ping opacity-30" />
+          <span className="w-4 h-4 rounded-full border border-[#7ec8e3] bg-[#7ec8e3]/20 flex items-center justify-center">
+            <span className="w-1 h-1 rounded-full bg-white" />
+          </span>
+          <span id="dbg-reticle-label" className="absolute -top-4 left-6 text-[9px] font-mono whitespace-nowrap bg-[#05070a]/90 px-1 py-0.5 rounded border border-[#7ec8e3]/30 text-[#7ec8e3]">
+            UV: (0.50, 0.50)
+          </span>
+        </div>
+      </div>
     </section>
-  );
+  </div>
+);
 }

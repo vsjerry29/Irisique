@@ -5,7 +5,7 @@ import dynamic from "next/dynamic";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import Header from "@/components/layout/Header";
-import IrisGallery from "@/components/home/IrisGallery";
+import UnifiedIrisHero from "@/components/iris/UnifiedIrisHero";
 import CoupleExperience from "@/components/home/CoupleExperience";
 import ProductTransformation from "@/components/home/ProductTransformation";
 import BookingInvitation from "@/components/home/BookingInvitation";
@@ -15,11 +15,6 @@ if (typeof window !== "undefined") {
   gsap.registerPlugin(ScrollTrigger);
   (window as any).ScrollTrigger = ScrollTrigger;
 }
-
-// Unified WebGL continuous cinematic experience dynamically loaded with SSR disabled
-const UnifiedIrisHero = dynamic(() => import("@/components/iris/UnifiedIrisHero"), {
-  ssr: false,
-});
 
 export default function HomePage() {
 
@@ -63,13 +58,10 @@ export default function HomePage() {
       {/* ─── Global atelier navigation header ─── */}
       <Header onReplayIntro={handleReplayIntro} />
 
-      {/* ─── EXPERIENCE 01: Unified Iris Universe (Continuous Cinematic Macro-to-Layer WebGL Journey) ─── */}
+      {/* ─── EXPERIENCE 01: Unified Iris Continuum (Macro-to-Layer WebGL Journey through Curated Gallery) ─── */}
       <UnifiedIrisHero />
 
-      {/* ─── EXPERIENCE 02: Interactive Iris Gallery (Curated Exhibition) ─── */}
-      <IrisGallery />
-
-      {/* ─── EXPERIENCE 04: Couple Composition (Two Become One) ─── */}
+      {/* ─── EXPERIENCE 02: Couple Composition (Two Become One) ─── */}
       <CoupleExperience />
 
       {/* ─── EXPERIENCE 05: Artwork Transformation (Made to be Kept) ─── */}

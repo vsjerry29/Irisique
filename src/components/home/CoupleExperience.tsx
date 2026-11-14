@@ -171,11 +171,12 @@ export default function CoupleExperience() {
   }, []);
 
   return (
-    <section
-      id="couple"
-      ref={containerRef}
-      className="relative z-30 w-full h-screen overflow-hidden bg-[#030405] text-[#f0f0f2] flex flex-col justify-between p-6 sm:p-10 md:p-12 select-none"
-    >
+    <div className="relative w-full">
+      <section
+        id="couple"
+        ref={containerRef}
+        className="relative z-30 w-full h-screen overflow-hidden bg-[#030405] text-[#f0f0f2] flex flex-col justify-between p-6 sm:p-10 md:p-12 select-none"
+      >
       {/* Top Meta Label */}
       <div className="relative z-20 flex items-center justify-between w-full">
         <div className="flex items-center gap-2.5 text-[10px] font-mono tracking-[0.30em] uppercase text-[#7ec8e3]">
@@ -254,5 +255,6 @@ export default function CoupleExperience() {
         </div>
       </div>
     </section>
-  );
+  </div>
+);
 }

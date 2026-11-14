@@ -13,7 +13,11 @@ if (typeof window !== "undefined") {
   gsap.registerPlugin(ScrollTrigger);
 }
 
-export default function IrisGallery() {
+interface IrisGalleryProps {
+  isEmbedded?: boolean;
+}
+
+export default function IrisGallery({ isEmbedded = false }: IrisGalleryProps) {
   const [activeIndex, setActiveIndex] = useState(0);
   const [selectedArtwork, setSelectedArtwork] = useState<(typeof GALLERY_ITEMS)[0] | null>(null);
   const [dragOffset, setDragOffset] = useState(0);
@@ -100,7 +104,7 @@ export default function IrisGallery() {
   }, [selectedArtwork, nextItem, prevItem]);
 
   useEffect(() => {
-    if (!containerRef.current) return;
+    if (isEmbedded || !containerRef.current) return;
     const el = containerRef.current;
     const ctx = gsap.context(() => {
       // Subtle entrance
@@ -129,15 +133,21 @@ export default function IrisGallery() {
       });
     }, el);
     return () => ctx.revert();
-  }, []);
+  }, [isEmbedded]);
 
   return (
     <section
       id="gallery"
       ref={containerRef}
-      className="relative z-30 w-full min-h-screen py-16 md:py-20 flex flex-col justify-between overflow-hidden bg-[#030405] select-none transition-colors duration-1000"
+      className={`relative z-30 w-full ${
+        isEmbedded
+          ? "h-full py-8 md:py-12 bg-transparent"
+          : "min-h-screen py-16 md:py-20 bg-[#030405]"
+      } flex flex-col justify-between overflow-hidden select-none transition-colors duration-1000`}
       style={{
-        background: `radial-gradient(circle at 50% 50%, ${activeItem.glowColor}10 0%, #030405 75%)`,
+        background: isEmbedded
+          ? `radial-gradient(circle at 50% 50%, ${activeItem.glowColor}18 0%, rgba(3,4,5,0.65) 50%, rgba(3,4,5,0.92) 85%)`
+          : `radial-gradient(circle at 50% 50%, ${activeItem.glowColor}10 0%, #030405 75%)`,
       }}
     >
       {/* Section Typography Header */}
