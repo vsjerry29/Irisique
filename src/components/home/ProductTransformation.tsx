@@ -94,16 +94,16 @@ export default function ProductTransformation() {
       ref={containerRef}
       onMouseMove={handleMouseMove}
       onMouseLeave={handleMouseLeave}
-      className="relative w-full min-h-screen py-24 md:py-32 flex flex-col justify-between overflow-hidden bg-[#030405] text-[#f0f0f2] px-6 sm:px-10 md:px-16 select-none"
+      className="relative z-30 w-full min-h-screen py-12 md:py-16 flex flex-col justify-between overflow-hidden bg-[#030405] text-[#f0f0f2] px-6 sm:px-10 md:px-16 select-none"
     >
       {/* Top Section Header */}
-      <div className="relative z-10 max-w-7xl mx-auto w-full flex flex-col sm:flex-row sm:items-end justify-between gap-6 border-b border-[#161622] pb-8">
-        <div className="flex flex-col gap-3">
+      <div className="relative z-10 max-w-7xl mx-auto w-full flex flex-col sm:flex-row sm:items-end justify-between gap-4 border-b border-[#161622] pb-5">
+        <div className="flex flex-col gap-2">
           <div className="flex items-center gap-2.5 text-[10px] font-mono tracking-[0.30em] uppercase text-[#7ec8e3]">
             <span className="w-1.5 h-1.5 rounded-full bg-[#7ec8e3] animate-pulse" />
             <span>05 / MATERIAL CRAFTSMANSHIP</span>
           </div>
-          <h2 className="font-display text-4xl sm:text-6xl md:text-7xl font-light tracking-[-0.04em] uppercase text-[#f7f7fa]">
+          <h2 className="font-display text-3xl sm:text-5xl md:text-6xl font-light tracking-[-0.04em] uppercase text-[#f7f7fa]">
             MADE TO BE KEPT.
           </h2>
         </div>
@@ -154,9 +154,9 @@ export default function ProductTransformation() {
       </div>
 
       {/* Center Dominant Product Visual Presentation with Perspective Tilt */}
-      <div className="relative z-10 w-full flex-1 flex items-center justify-center my-10 py-6">
+      <div className="relative z-10 w-full flex-1 flex items-center justify-center my-6 py-2">
         <div
-          className="relative w-full max-w-4xl aspect-[16/10] sm:aspect-[16/9] flex items-center justify-center transition-transform duration-500 ease-out"
+          className="relative w-full max-w-3xl aspect-[16/10] max-h-[48vh] flex items-center justify-center transition-transform duration-500 ease-out"
           style={{
             transform: `perspective(1200px) rotateY(${mousePos.x * 3.5}deg) rotateX(${-mousePos.y * 3.5}deg)`,
           }}
@@ -168,9 +168,9 @@ export default function ProductTransformation() {
               src={displayImage}
               alt={current.name}
               fill
-              sizes="(max-width: 1024px) 90vw, 960px"
+              sizes="(max-width: 1024px) 90vw, 840px"
               priority
-              className="object-contain p-4 sm:p-8 transition-all duration-700 animate-fadeIn"
+              className="object-contain p-4 sm:p-6 transition-all duration-700 animate-fadeIn"
             />
 
             {/* Specular Light Variation Overlay */}
@@ -185,7 +185,7 @@ export default function ProductTransformation() {
       </div>
 
       {/* Bottom Information Row & Actions */}
-      <div className="relative z-10 max-w-7xl mx-auto w-full flex flex-col sm:flex-row sm:items-end justify-between gap-6 border-t border-[#161622] pt-8">
+      <div className="relative z-10 max-w-7xl mx-auto w-full flex flex-col sm:flex-row sm:items-end justify-between gap-4 border-t border-[#161622] pt-5">
         <div className="flex flex-col gap-1.5">
           <div className="flex items-center gap-3">
             <span className="font-display text-2xl sm:text-3xl font-light text-white uppercase">

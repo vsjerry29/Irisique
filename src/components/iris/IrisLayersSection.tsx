@@ -543,9 +543,10 @@ export default function IrisLayersSection() {
         pin: true,
         pinSpacing: true,
         start: "top top",
-        end: "+=200%", // 200vh controlled scroll travel
+        end: "+=150%", // 150vh controlled scroll travel
         scrub: 0.8,   // Liquid-smooth 0.8s catchup
         invalidateOnRefresh: true,
+        refreshPriority: 9,
         onUpdate: (self) => {
           canonicalState.p = self.progress;
         },
@@ -781,7 +782,7 @@ export default function IrisLayersSection() {
       ref={containerRef}
       id="universe"
       data-section="iris-layers"
-      className="relative w-full h-screen overflow-hidden bg-[#020304] select-none"
+      className="relative z-20 w-full h-screen overflow-hidden bg-[#020304] select-none"
     >
       <canvas
         ref={canvasRef}

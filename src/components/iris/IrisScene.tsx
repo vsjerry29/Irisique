@@ -472,6 +472,7 @@ export default function IrisScene({
           end: "+=120%",
           scrub: 0.8, // Liquid-smooth 0.8s catchup
           invalidateOnRefresh: true,
+          refreshPriority: 10,
           onUpdate: (self) => {
             uniforms.uScrollProgress.value = self.progress;
 

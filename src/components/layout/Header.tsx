@@ -12,7 +12,17 @@ interface HeaderProps {
 
 export default function Header({ onReplayIntro }: HeaderProps) {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isHeroInView, setIsHeroInView] = useState(true);
   const { totalCount, setIsCartOpen } = useCart();
+
+  React.useEffect(() => {
+    const handleScroll = () => {
+      setIsHeroInView(window.scrollY < 450);
+    };
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    handleScroll();
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
 
   return (
     <>
@@ -46,11 +56,11 @@ export default function Header({ onReplayIntro }: HeaderProps) {
             </button>
           )}
 
-          {/* Discreet Replay button if available */}
-          {onReplayIntro && (
+          {/* Discreet Replay button restricted strictly to hero viewport */}
+          {onReplayIntro && isHeroInView && (
             <button
               onClick={onReplayIntro}
-              className="hidden lg:inline-block text-[10px] font-mono tracking-[0.20em] uppercase text-[#606072] hover:text-[#7ec8e3] transition-colors duration-200 px-2"
+              className="hidden lg:inline-block text-[10px] font-mono tracking-[0.20em] uppercase text-[#606072] hover:text-[#7ec8e3] transition-colors duration-200 px-2 animate-fadeIn"
               title="Replay Cinematic Opening"
             >
               REPLAY [R]

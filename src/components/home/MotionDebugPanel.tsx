@@ -13,6 +13,12 @@ export default function MotionDebugPanel() {
   const [motionDisabled, setMotionDisabled] = useState(false);
 
   useEffect(() => {
+    if (typeof window !== "undefined") {
+      (window as any).ScrollTrigger = ScrollTrigger;
+    }
+  }, []);
+
+  useEffect(() => {
     if (typeof window === "undefined") return;
     const params = new URLSearchParams(window.location.search);
     if (params.get("motionDebug") === "1") {

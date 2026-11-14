@@ -30,21 +30,22 @@ export default function CoupleExperience() {
     if (!container || !amber || !blue || !finalArt) return;
 
     const ctx = gsap.context(() => {
-      // Timeline pinned for 200vh travel
+      // Timeline pinned for 120vh travel (tight, zero empty scrolling)
       const tl = gsap.timeline({
         scrollTrigger: {
           trigger: container,
           start: "top top",
-          end: "+=200%",
+          end: "+=120%",
           pin: true,
           pinSpacing: true,
           scrub: 0.8,
           invalidateOnRefresh: true,
+          refreshPriority: 8,
         },
       });
 
       // ─── Initial Setup ───
-      // Stage A (0% – 20%): Separated at left and right, hidden until section activates
+      // Stage A (0% – 15%): Separated at left and right, hidden until section activates
       gsap.set(amber, { xPercent: -90, yPercent: 0, rotation: -12, scale: 0.85, opacity: 0 });
       gsap.set(blue, { xPercent: 90, yPercent: 0, rotation: 12, scale: 0.85, opacity: 0 });
       gsap.set(finalArt, { opacity: 0, scale: 0.95 });
@@ -99,7 +100,7 @@ export default function CoupleExperience() {
         0.20
       );
 
-      // ─── Stage C & D: Connection & Final Artwork Dissolve (55% – 85%) ───
+      // ─── Stage C & D: Connection & Final Artwork Dissolve (55% – 80%) ───
       // Both irises meet at the center and smoothly dissolve into the unified couple piece
       tl.to(
         amber,
@@ -140,16 +141,29 @@ export default function CoupleExperience() {
         0.58
       );
 
-      // ─── Stage E: Handoff & Action (85% – 100%) ───
+      // ─── Stage E: Handoff & Action (75% – 85%) ───
       tl.to(
         action,
         {
           opacity: 1,
           y: 0,
-          duration: 0.15,
+          duration: 0.10,
           ease: "power2.out",
         },
-        0.80
+        0.75
+      );
+
+      // ─── Stage F: Smooth Exit Handoff to Products (82% – 96%) ───
+      // Gracefully fade out heading and action before unpinning so they never collide with Products headline
+      tl.to(
+        [heading, action],
+        {
+          opacity: 0,
+          y: -25,
+          duration: 0.14,
+          ease: "power1.in",
+        },
+        0.82
       );
     }, container);
 
@@ -160,7 +174,7 @@ export default function CoupleExperience() {
     <section
       id="couple"
       ref={containerRef}
-      className="relative w-full h-screen overflow-hidden bg-[#030405] text-[#f0f0f2] flex flex-col justify-between p-6 sm:p-12 md:p-16 select-none"
+      className="relative z-30 w-full h-screen overflow-hidden bg-[#030405] text-[#f0f0f2] flex flex-col justify-between p-6 sm:p-10 md:p-12 select-none"
     >
       {/* Top Meta Label */}
       <div className="relative z-20 flex items-center justify-between w-full">
@@ -178,13 +192,13 @@ export default function CoupleExperience() {
         {/* Eye 1: Amber Partner */}
         <div
           ref={amberEyeRef}
-          className="absolute w-[280px] sm:w-[420px] md:w-[500px] aspect-square rounded-full overflow-hidden shadow-[0_0_80px_rgba(224,152,72,0.15)] will-change-transform"
+          className="absolute w-[240px] sm:w-[340px] md:w-[420px] aspect-square rounded-full overflow-hidden shadow-[0_0_80px_rgba(224,152,72,0.15)] will-change-transform"
         >
           <Image
             src="/assets/couple/couple_amber.webp"
             alt="Amber Iris Partner"
             fill
-            sizes="(max-width: 768px) 280px, 500px"
+            sizes="(max-width: 768px) 240px, 420px"
             priority
             className="object-cover"
           />
@@ -193,13 +207,13 @@ export default function CoupleExperience() {
         {/* Eye 2: Blue Partner */}
         <div
           ref={blueEyeRef}
-          className="absolute w-[280px] sm:w-[420px] md:w-[500px] aspect-square rounded-full overflow-hidden shadow-[0_0_80px_rgba(126,200,227,0.15)] will-change-transform"
+          className="absolute w-[240px] sm:w-[340px] md:w-[420px] aspect-square rounded-full overflow-hidden shadow-[0_0_80px_rgba(126,200,227,0.15)] will-change-transform"
         >
           <Image
             src="/assets/couple/couple_blue.webp"
             alt="Blue Iris Partner"
             fill
-            sizes="(max-width: 768px) 280px, 500px"
+            sizes="(max-width: 768px) 240px, 420px"
             priority
             className="object-cover"
           />
@@ -208,13 +222,13 @@ export default function CoupleExperience() {
         {/* Unified Final Artwork (Reveals seamlessly at connection) */}
         <div
           ref={finalArtworkRef}
-          className="absolute w-[92vw] max-w-[960px] aspect-[16/9] rounded-2xl overflow-hidden border border-[#222232] bg-[#020304] shadow-[0_0_120px_rgba(0,0,0,0.95)] will-change-transform"
+          className="absolute w-[90vw] max-w-[780px] md:max-w-[840px] aspect-[16/9] max-h-[46vh] rounded-2xl overflow-hidden border border-[#222232] bg-[#020304] shadow-[0_0_120px_rgba(0,0,0,0.95)] will-change-transform"
         >
           <Image
             src="/assets/couple/couple_artwork_final.webp"
             alt="Two Become One Couple Artwork"
             fill
-            sizes="(max-width: 768px) 92vw, 960px"
+            sizes="(max-width: 768px) 90vw, 840px"
             className="object-cover"
           />
         </div>

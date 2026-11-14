@@ -222,7 +222,7 @@ export const GALLERY_ITEMS = [
     name: "EMERALD STROMA",
     category: "Rare Jade",
     colorName: "Emerald & Golden Ochre",
-    glowColor: "#38b2ac",
+    glowColor: "#2d9f8c",
     image: "/assets/gallery/iris_emerald.webp",
     description: "Rare luminescent jade stroma flecked with micro-collagen gold arches and deep forest shading.",
     specs: "0.01mm Macro • Monochromatic Separation",

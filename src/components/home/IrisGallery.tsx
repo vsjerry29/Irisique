@@ -103,20 +103,30 @@ export default function IrisGallery() {
     if (!containerRef.current) return;
     const el = containerRef.current;
     const ctx = gsap.context(() => {
+      // Subtle entrance
       gsap.fromTo(
         el,
         { opacity: 0.85 },
         {
           opacity: 1,
-          duration: 0.6,
           scrollTrigger: {
             trigger: el,
-            start: "top 90%",
-            end: "top 30%",
+            start: "top 95%",
+            end: "top 40%",
             scrub: 0.5,
           },
         }
       );
+      // Clean exit handoff to Couple
+      gsap.to(el, {
+        opacity: 0.05,
+        scrollTrigger: {
+          trigger: el,
+          start: "bottom 80%",
+          end: "bottom 15%",
+          scrub: 0.5,
+        },
+      });
     }, el);
     return () => ctx.revert();
   }, []);
@@ -125,7 +135,7 @@ export default function IrisGallery() {
     <section
       id="gallery"
       ref={containerRef}
-      className="relative w-full min-h-screen py-24 md:py-32 flex flex-col justify-between overflow-hidden bg-[#030405] select-none transition-colors duration-1000"
+      className="relative z-30 w-full min-h-screen py-16 md:py-20 flex flex-col justify-between overflow-hidden bg-[#030405] select-none transition-colors duration-1000"
       style={{
         background: `radial-gradient(circle at 50% 50%, ${activeItem.glowColor}10 0%, #030405 75%)`,
       }}
@@ -175,13 +185,13 @@ export default function IrisGallery() {
         onTouchMove={(e) => handlePointerMove(e.touches[0].clientX)}
         onTouchEnd={handlePointerUp}
       >
-        <div className="relative w-full max-w-5xl h-[380px] sm:h-[480px] md:h-[540px] flex items-center justify-center">
+        <div className="relative w-full max-w-5xl h-[320px] sm:h-[400px] md:h-[440px] flex items-center justify-center">
           {GALLERY_ITEMS.map((item, idx) => {
             const offset = (idx - activeIndex + GALLERY_ITEMS.length) % GALLERY_ITEMS.length;
             // Calculate relative positioning: 0 = center, 1 = right, 2 = left (for length 3)
             let xPos = 0;
-            let scale = 0.72;
-            let opacity = 0.35;
+            let scale = 0.65;
+            let opacity = 0.28;
             let zIndex = 1;
 
             if (offset === 0) {
@@ -190,14 +200,14 @@ export default function IrisGallery() {
               opacity = 1.0;
               zIndex = 10;
             } else if (offset === 1) {
-              xPos = 360 + dragOffset * 0.4;
-              scale = 0.72;
-              opacity = 0.45;
+              xPos = 320 + dragOffset * 0.35;
+              scale = 0.65;
+              opacity = 0.28;
               zIndex = 5;
             } else {
-              xPos = -360 + dragOffset * 0.4;
-              scale = 0.72;
-              opacity = 0.45;
+              xPos = -320 + dragOffset * 0.35;
+              scale = 0.65;
+              opacity = 0.28;
               zIndex = 5;
             }
 
@@ -218,16 +228,23 @@ export default function IrisGallery() {
                 style={{
                   transform: `translateX(${xPos}px) scale(${scale}) rotate(${tilt}deg)`,
                   opacity,
+                  filter: offset === 0 ? "none" : "grayscale(25%)",
                   zIndex,
                 }}
               >
-                <div className="relative w-[280px] sm:w-[380px] md:w-[440px] aspect-square rounded-full p-2 border border-[#2a2a38]/60 bg-[#07070b]/60 backdrop-blur-md transition-all duration-500 group-hover:border-[#7ec8e3]/80 group-hover:shadow-[0_0_40px_rgba(126,200,227,0.15)]">
+                <div
+                  className={`relative w-[240px] sm:w-[320px] md:w-[380px] aspect-square rounded-full p-2 border bg-[#07070b]/60 backdrop-blur-md transition-all duration-500 ${
+                    offset === 0
+                      ? "border-[#7ec8e3]/80 shadow-[0_0_50px_rgba(126,200,227,0.18)]"
+                      : "border-[#222230]/50 hover:border-[#7ec8e3]/40"
+                  }`}
+                >
                   <div className="relative w-full h-full rounded-full overflow-hidden">
                     <Image
                       src={item.image}
                       alt={item.name}
                       fill
-                      sizes="(max-width: 768px) 280px, 440px"
+                      sizes="(max-width: 768px) 240px, 380px"
                       priority={offset === 0}
                       className="object-cover transform transition-transform duration-700 group-hover:scale-105"
                     />

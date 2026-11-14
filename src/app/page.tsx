@@ -2,6 +2,8 @@
 
 import React, { useRef, useEffect } from "react";
 import dynamic from "next/dynamic";
+import gsap from "gsap";
+import { ScrollTrigger } from "gsap/ScrollTrigger";
 import Header from "@/components/layout/Header";
 import HeroUI from "@/components/iris/HeroUI";
 import IrisGallery from "@/components/home/IrisGallery";
@@ -9,6 +11,11 @@ import CoupleExperience from "@/components/home/CoupleExperience";
 import ProductTransformation from "@/components/home/ProductTransformation";
 import BookingInvitation from "@/components/home/BookingInvitation";
 import MotionDebugPanel from "@/components/home/MotionDebugPanel";
+
+if (typeof window !== "undefined") {
+  gsap.registerPlugin(ScrollTrigger);
+  (window as any).ScrollTrigger = ScrollTrigger;
+}
 
 // WebGL components dynamically loaded with SSR disabled
 const IrisScene = dynamic(() => import("@/components/iris/IrisScene"), {
@@ -30,6 +37,26 @@ export default function HomePage() {
         window.history.scrollRestoration = "manual";
       }
       window.scrollTo(0, 0);
+
+      // Master coordination: sort triggers in DOM order and refresh layout metrics
+      const refreshAll = () => {
+        ScrollTrigger.sort();
+        ScrollTrigger.refresh();
+      };
+
+      // Call immediately and after dynamic WebGL components settle
+      refreshAll();
+      const t1 = setTimeout(refreshAll, 150);
+      const t2 = setTimeout(refreshAll, 600);
+      const t3 = setTimeout(refreshAll, 1400);
+
+      window.addEventListener("resize", refreshAll);
+      return () => {
+        clearTimeout(t1);
+        clearTimeout(t2);
+        clearTimeout(t3);
+        window.removeEventListener("resize", refreshAll);
+      };
     }
   }, []);
 

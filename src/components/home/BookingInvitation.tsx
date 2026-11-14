@@ -12,46 +12,43 @@ export default function BookingInvitation() {
   return (
     <section
       id="inquire"
-      className="relative w-full min-h-screen py-24 sm:py-32 flex flex-col justify-between overflow-hidden bg-[#020204] text-[#f0f0f2] px-6 sm:px-10 md:px-16 lg:px-24 select-none"
+      className="relative z-30 w-full min-h-screen py-16 sm:py-20 flex flex-col justify-between overflow-hidden bg-[#020204] text-[#f0f0f2] px-6 sm:px-10 md:px-16 lg:px-24 select-none"
     >
-      {/* Background Cinematic Luminous Iris Artwork */}
-      <div className="absolute inset-0 z-0 flex items-center justify-center opacity-25 pointer-events-none">
-        <div className="relative w-[600px] sm:w-[800px] md:w-[1000px] aspect-square rounded-full overflow-hidden blur-[1px]">
+      {/* Background Cinematic Luminous Iris Artwork (Deep subtle ambient stroma) */}
+      <div className="absolute inset-0 z-0 flex items-center justify-center opacity-12 pointer-events-none">
+        <div className="relative w-[500px] sm:w-[700px] md:w-[850px] aspect-square rounded-full overflow-hidden blur-[2px]">
           <Image
             src="/assets/gallery/iris_amber.webp"
             alt="Cinematic Background Iris"
             fill
-            sizes="1000px"
+            sizes="850px"
             className="object-cover animate-spin-very-slow"
           />
         </div>
-        {/* Soft Dark Vignette Overlay */}
-        <div className="absolute inset-0 bg-radial-gradient from-transparent via-[#020204]/80 to-[#020204]" />
+        {/* Soft Dark Vignette Overlay for Crisp Contrast */}
+        <div className="absolute inset-0 bg-radial-gradient from-transparent via-[#020204]/85 to-[#020204]" />
       </div>
 
       {/* Top Meta Indicator */}
-      <div className="relative z-10 max-w-6xl mx-auto w-full flex items-center justify-between border-b border-[#14141e] pb-6">
+      <div className="relative z-10 max-w-6xl mx-auto w-full flex items-center justify-between border-b border-[#161622] pb-4">
         <div className="flex items-center gap-2.5 text-[10px] font-mono tracking-[0.30em] uppercase text-[#7ec8e3]">
           <span className="w-1.5 h-1.5 rounded-full bg-[#7ec8e3] animate-pulse" />
-          <span>06 / ATELIER CONVERSION</span>
+          <span>BESPOKE APPOINTMENTS</span>
         </div>
-        <span className="text-[10px] font-mono tracking-widest uppercase text-[#555566]">
+        <span className="text-[10px] font-mono tracking-widest uppercase text-[#777788]">
           {SITE_CONFIG.location}
         </span>
       </div>
 
       {/* Center Main Conversion Hero Typography */}
-      <div className="relative z-10 max-w-6xl mx-auto w-full my-auto py-12 flex flex-col items-start gap-8">
-        <div className="flex flex-col gap-3">
-          <span className="font-mono text-xs sm:text-sm tracking-[0.30em] uppercase text-[#7ec8e3]">
-            {SITE_CONFIG.location}
-          </span>
+      <div className="relative z-10 max-w-6xl mx-auto w-full my-auto py-10 flex flex-col items-start gap-6">
+        <div className="flex flex-col gap-2">
           <h2 className="font-display text-5xl sm:text-7xl md:text-8xl lg:text-9xl font-light tracking-[-0.04em] uppercase text-white leading-[0.9]">
             YOUR TURN.
           </h2>
         </div>
 
-        <p className="max-w-lg font-sans text-xs sm:text-sm text-[#8e8e9c] leading-relaxed">
+        <p className="max-w-lg font-sans text-xs sm:text-sm text-[#a6a6b8] leading-relaxed">
           Book an intimate macro session at our Pondicherry atelier or enquire about
           upcoming travel pop-up dates. Every piece is strictly unique to your stroma.
         </p>
@@ -76,7 +73,7 @@ export default function BookingInvitation() {
       </div>
 
       {/* Minimal Refined Editorial Footer */}
-      <footer className="relative z-10 max-w-6xl mx-auto w-full border-t border-[#14141e] pt-12 pb-6 flex flex-col gap-8">
+      <footer className="relative z-10 max-w-6xl mx-auto w-full border-t border-[#181826] pt-10 pb-6 flex flex-col gap-6">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6">
           <Link
             href="/"
@@ -85,7 +82,7 @@ export default function BookingInvitation() {
             IRIS<sup className="text-xs ml-0.5 opacity-60">®</sup>
           </Link>
 
-          <nav className="flex flex-wrap items-center gap-6 sm:gap-8 text-xs font-mono tracking-wider text-[#8e8e9c]">
+          <nav className="flex flex-wrap items-center gap-6 sm:gap-8 text-xs font-mono tracking-wider text-[#cfcfde]">
             <Link href="/products" className="hover:text-white transition-colors">
               PRODUCTS
             </Link>
@@ -104,7 +101,7 @@ export default function BookingInvitation() {
           </nav>
         </div>
 
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 text-[10px] font-mono tracking-widest text-[#555566]">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 text-[10px] font-mono tracking-widest text-[#808094]">
           <span>© 2026 IRIS STUDIO • {SITE_CONFIG.location.toUpperCase()} • ALL RIGHTS RESERVED</span>
           <div className="flex items-center gap-6">
             <a
