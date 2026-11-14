@@ -779,7 +779,8 @@ export default function IrisLayersSection() {
   return (
     <section
       ref={containerRef}
-      id="iris-layers"
+      id="universe"
+      data-section="iris-layers"
       className="relative w-full h-screen overflow-hidden bg-[#020304] select-none"
     >
       <canvas

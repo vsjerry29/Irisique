@@ -1,6 +1,8 @@
 import type { Metadata, Viewport } from "next";
 import { Plus_Jakarta_Sans, Space_Grotesk } from "next/font/google";
 import "./globals.css";
+import { CartProvider } from "@/lib/cart";
+import CartDrawer from "@/components/commerce/CartDrawer";
 
 const sansFont = Plus_Jakarta_Sans({
   subsets: ["latin"],
@@ -17,17 +19,18 @@ const displayFont = Space_Grotesk({
 });
 
 export const metadata: Metadata = {
-  title: "IRIS® — Nothing Like Yours",
-  description: "A universe in every eye. Bespoke, living iris photography and personalised art.",
+  title: "IRIS® — Biometric Fine Art Photography | Pondicherry",
+  description:
+    "A universe in every eye. Bespoke, living iris macro photography and personalised fine art created in Pondicherry, India.",
   openGraph: {
-    title: "IRIS® — Nothing Like Yours",
-    description: "A universe in every eye. Bespoke, living iris photography and personalised art.",
+    title: "IRIS® — Biometric Fine Art Photography",
+    description: "Look closer. Living iris macro photography and personalised fine art.",
     type: "website",
   },
 };
 
 export const viewport: Viewport = {
-  themeColor: "#030304",
+  themeColor: "#030405",
   width: "device-width",
   initialScale: 1,
   maximumScale: 5,
@@ -39,9 +42,23 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={`${sansFont.variable} ${displayFont.variable} bg-[#030304] text-[#f0f0f2]`}>
-      <body className="bg-[#030304] text-[#f0f0f2] antialiased min-h-screen selection:bg-amber-deep/30 selection:text-white">
-        {children}
+    <html
+      lang="en"
+      className={`${sansFont.variable} ${displayFont.variable} bg-[#030405] text-[#f0f0f2]`}
+    >
+      <head>
+        <link
+          rel="preload"
+          as="image"
+          href="/assets/iris/iris-color.webp"
+          type="image/webp"
+        />
+      </head>
+      <body className="bg-[#030405] text-[#f0f0f2] antialiased min-h-screen selection:bg-[#7ec8e3]/30 selection:text-white">
+        <CartProvider>
+          {children}
+          <CartDrawer />
+        </CartProvider>
       </body>
     </html>
   );

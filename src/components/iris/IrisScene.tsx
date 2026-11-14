@@ -327,6 +327,20 @@ export default function IrisScene({
         0.00
       );
 
+      // Hero Typography Reveal: Starts early at 0.40s so the user never faces a blank screen
+      if (heroRef?.current) {
+        introTimeline.to(
+          heroRef.current,
+          {
+            opacity: 1,
+            y: 0,
+            duration: 0.85,
+            ease: "power2.out",
+          },
+          0.40
+        );
+      }
+
       // 0.60–1.60s: Microscopic Exploration
       introTimeline.to(
         introState,
@@ -354,20 +368,6 @@ export default function IrisScene({
         },
         1.60
       );
-
-      // 2.70–3.60s: Coordinated Hero Typography Reveal (Enters as camera slows naturally)
-      if (heroRef?.current) {
-        introTimeline.to(
-          heroRef.current,
-          {
-            opacity: 1,
-            y: 0,
-            duration: 0.90,
-            ease: "power2.out",
-          },
-          2.70
-        );
-      }
 
       // 2.90–3.50s: Full Iris Settle
       introTimeline.to(
@@ -469,8 +469,8 @@ export default function IrisScene({
           pin: true,
           pinSpacing: true,
           start: "top top",
-          end: "+=220%",
-          scrub: 1.0, // Liquid-smooth 1.0s catchup
+          end: "+=120%",
+          scrub: 0.8, // Liquid-smooth 0.8s catchup
           invalidateOnRefresh: true,
           onUpdate: (self) => {
             uniforms.uScrollProgress.value = self.progress;
@@ -480,8 +480,8 @@ export default function IrisScene({
               introTimeline.progress(1.0);
             }
 
-            // Reverse scroll restoration: When scroll progress reaches the top (0.00), ensure hero text is restored
-            if (self.progress === 0 && introTimeline && introTimeline.progress() >= 1.0) {
+            // Reverse scroll restoration: When scroll progress reaches the top (<= 0.02), ensure hero text is restored
+            if (self.progress <= 0.02 && introTimeline && introTimeline.progress() >= 0.5) {
               if (heroRef?.current) gsap.set(heroRef.current, { opacity: 1, y: 0 });
               if (heroScrollRef?.current) gsap.set(heroScrollRef.current, { opacity: 1, y: 0, autoAlpha: 1 });
             }
@@ -489,16 +489,15 @@ export default function IrisScene({
         },
       });
 
-      // ─── Phase A (0.00 – 0.20): Hero beginning ───
-      // Rotate 10-15 degrees, slight scale increase, hero text moves out
+      // ─── Phase A (0.00 – 0.35): Hero text fadeout & gentle iris response ───
       scrollTimeline.to(
         scrollState,
         {
           rotation: THREE.MathUtils.degToRad(14),
-          scale: 1.08,
+          scale: 1.06,
           offsetX: 0.0,
           offsetY: 0.0,
-          duration: 0.20,
+          duration: 0.35,
           ease: "power1.inOut",
         },
         0.00
@@ -515,9 +514,9 @@ export default function IrisScene({
           },
           {
             opacity: 0,
-            y: -45,
+            y: -35,
             autoAlpha: 0,
-            duration: 0.18,
+            duration: 0.28,
             ease: "power1.inOut",
             immediateRender: false,
           },
@@ -525,74 +524,20 @@ export default function IrisScene({
         );
       }
 
-      // ─── Phase B (0.20 – 0.55): Immersive motion ───
-      // Rotate to ~65 degrees, zoom closer (1.35x desktop / 1.20x mobile), controlled depth
+      // ─── Phase B (0.35 – 1.00): Seamless Alignment Handoff to Iris Universe ───
+      // Settle smoothly back to scale 1.00, rotation 0, offset (0, 0)
+      // Exactly matching the starting configuration of IrisLayersSection (centered, 1.0x scale)
       scrollTimeline.to(
         scrollState,
         {
-          rotation: THREE.MathUtils.degToRad(65),
-          scale: () => (checkIsMobile() ? 1.20 : 1.35),
-          offsetX: () => (checkIsMobile() ? 0.0 : 0.05),
-          offsetY: () => (checkIsMobile() ? -0.04 : -0.02),
-          duration: 0.35,
-          ease: "power2.inOut",
-        },
-        0.20
-      );
-
-      if (captionRef?.current) {
-        scrollTimeline.fromTo(
-          captionRef.current,
-          { opacity: 0, y: 15 },
-          { opacity: 0.85, y: 0, duration: 0.15, ease: "power1.out" },
-          0.26
-        );
-        scrollTimeline.to(
-          captionRef.current,
-          { opacity: 0, y: -15, duration: 0.12, ease: "power1.in" },
-          0.44
-        );
-      }
-
-      // ─── Phase C (0.55 – 0.80): Transition into next section ───
-      // Scale down (0.68x), rotate to 108 degrees, reposition to right side (+0.28 desktop / +0.18y mobile)
-      // Reveal next section's content around it
-      scrollTimeline.to(
-        scrollState,
-        {
-          rotation: THREE.MathUtils.degToRad(108),
-          scale: () => (checkIsMobile() ? 0.58 : 0.68),
-          offsetX: () => (checkIsMobile() ? 0.0 : 0.28),
-          offsetY: () => (checkIsMobile() ? 0.18 : 0.0),
-          duration: 0.25,
-          ease: "power2.inOut",
-        },
-        0.55
-      );
-
-      if (nextSectionRef?.current) {
-        scrollTimeline.fromTo(
-          nextSectionRef.current,
-          { opacity: 0, y: 45 },
-          { opacity: 1, y: 0, duration: 0.24, ease: "power2.out" },
-          0.58
-        );
-      }
-
-      // ─── Phase D (0.80 – 1.00): Next section established ───
-      // Settle naturally into final composition (120 degrees, 0.65x scale, +0.28x offset)
-      // The iris remains permanently visible as part of the editorial composition!
-      scrollTimeline.to(
-        scrollState,
-        {
-          rotation: THREE.MathUtils.degToRad(120),
-          scale: () => (checkIsMobile() ? 0.55 : 0.65),
-          offsetX: () => (checkIsMobile() ? 0.0 : 0.28),
-          offsetY: () => (checkIsMobile() ? 0.18 : 0.0),
-          duration: 0.20,
+          rotation: THREE.MathUtils.degToRad(0),
+          scale: 1.00,
+          offsetX: 0.0,
+          offsetY: 0.0,
+          duration: 0.65,
           ease: "power1.out",
         },
-        0.80
+        0.35
       );
     }
 
