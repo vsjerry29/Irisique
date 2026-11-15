@@ -1,4 +1,13 @@
-export type ProductFormat = "digital" | "print" | "framed" | "couple" | "family";
+export type ProductFormat =
+  | "digital"
+  | "print"
+  | "framed"
+  | "couple"
+  | "family"
+  | "acrylic"
+  | "lightbox"
+  | "jewelry"
+  | (string & {});
 
 export interface ProductVariant {
   id: string;

@@ -54,7 +54,7 @@ export default function HomePage() {
   };
 
   return (
-    <main className="relative bg-[#030405] text-[#f0f0f2] w-full selection:bg-[#7ec8e3]/30 selection:text-white">
+    <main className="relative bg-[#020204] text-[#f0f0f2] w-full selection:bg-white/20 selection:text-white">
       {/* ─── Global atelier navigation header ─── */}
       <Header onReplayIntro={handleReplayIntro} />
 

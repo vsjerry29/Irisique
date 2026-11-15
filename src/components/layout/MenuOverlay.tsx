@@ -80,11 +80,11 @@ export default function MenuOverlay({ isOpen, onClose }: MenuOverlayProps) {
       className="fixed inset-0 z-[100] flex flex-col justify-between p-6 sm:p-12 md:p-16 bg-[#030405]/95 backdrop-blur-2xl text-[#f0f0f2] transition-all duration-500 animate-fadeIn"
     >
       {/* Top Header Row */}
-      <div className="flex items-center justify-between w-full border-b border-[#161622] pb-6">
+      <div className="flex items-center justify-between w-full border-b border-white/10 pb-6">
         <Link
           href="/"
           onClick={onClose}
-          className="font-display font-medium text-2xl tracking-[0.32em] uppercase text-white hover:text-[#7ec8e3] transition-colors"
+          className="font-display font-medium text-2xl tracking-[0.32em] uppercase text-white hover:text-white/80 transition-colors"
         >
           IRIS<sup className="text-xs ml-0.5 opacity-60">®</sup>
         </Link>
@@ -92,11 +92,11 @@ export default function MenuOverlay({ isOpen, onClose }: MenuOverlayProps) {
         <button
           ref={closeButtonRef}
           onClick={onClose}
-          className="group flex items-center gap-3 px-4 py-2 border border-[#222230] hover:border-[#7ec8e3]/60 bg-[#08080e]/60 text-xs font-mono uppercase tracking-[0.24em] text-[#9a9aa8] hover:text-white transition-all cursor-pointer"
+          className="group flex items-center gap-3 px-4 py-2 border border-white/20 hover:border-white bg-black/60 text-xs font-mono uppercase tracking-[0.24em] text-white/70 hover:text-white transition-all cursor-pointer"
           aria-label="Close menu"
         >
           <span>CLOSE [ESC]</span>
-          <X className="w-4 h-4 text-[#7ec8e3] transition-transform duration-300 group-hover:rotate-90" />
+          <X className="w-4 h-4 text-white transition-transform duration-300 group-hover:rotate-90" />
         </button>
       </div>
 
@@ -107,15 +107,15 @@ export default function MenuOverlay({ isOpen, onClose }: MenuOverlayProps) {
             key={link.href}
             href={link.href}
             onClick={onClose}
-            className="group flex items-baseline gap-4 sm:gap-6 text-white hover:text-[#7ec8e3] transition-colors duration-300"
+            className="group flex items-baseline gap-4 sm:gap-6 text-white/80 hover:text-white transition-colors duration-300"
           >
-            <span className="font-mono text-xs sm:text-sm text-[#555566] tracking-widest group-hover:text-[#7ec8e3] transition-colors">
+            <span className="font-mono text-xs sm:text-sm text-white/30 tracking-widest group-hover:text-white transition-colors">
               {link.num}
             </span>
             <span className="font-display text-3xl sm:text-5xl md:text-6xl lg:text-7xl font-light tracking-[-0.03em] uppercase transition-transform duration-300 group-hover:translate-x-2">
               {link.label}
             </span>
-            <ArrowUpRight className="opacity-0 group-hover:opacity-100 w-5 h-5 sm:w-8 sm:h-8 text-[#7ec8e3] transition-all duration-300 -translate-x-2 group-hover:translate-x-0" />
+            <ArrowUpRight className="opacity-0 group-hover:opacity-100 w-5 h-5 sm:w-8 sm:h-8 text-white transition-all duration-300 -translate-x-2 group-hover:translate-x-0" />
           </Link>
         ))}
       </nav>

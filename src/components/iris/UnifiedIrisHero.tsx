@@ -213,7 +213,7 @@ export default function UnifiedIrisHero({
       new THREE.Vector3(0.48, -0.15, 4.30),  // p=0.4: Entering gap between layers
       new THREE.Vector3(0.28, 0.18, 3.10),   // p=0.6: Traversing golden crypts & fibres
       new THREE.Vector3(-0.18, 0.12, 3.50),  // p=0.8: Parting layers, wide atmospheric framing
-      new THREE.Vector3(0.00, 0.00, 4.20),   // p=1.0: Easing into settled central framing for gallery
+      new THREE.Vector3(0.00, 0.00, 2.20),   // p=1.0: Full forward immersion through optical center
     ];
 
     const desktopTargetPoints = [
@@ -222,7 +222,7 @@ export default function UnifiedIrisHero({
       new THREE.Vector3(0.08, -0.03, -0.10),
       new THREE.Vector3(0.02, 0.03, -0.20),
       new THREE.Vector3(-0.06, 0.02, -0.25),
-      new THREE.Vector3(0.00, 0.00, 0.00),
+      new THREE.Vector3(0.00, 0.00, -0.80),
     ];
 
     const mobileCamPoints = [
@@ -231,7 +231,7 @@ export default function UnifiedIrisHero({
       new THREE.Vector3(0.22, -0.07, 5.20),
       new THREE.Vector3(0.14, 0.10, 4.10),
       new THREE.Vector3(-0.10, 0.06, 4.50),
-      new THREE.Vector3(0.00, 0.00, 5.20),
+      new THREE.Vector3(0.00, 0.00, 2.80),
     ];
 
     const mobileTargetPoints = [
@@ -240,7 +240,7 @@ export default function UnifiedIrisHero({
       new THREE.Vector3(0.05, -0.02, -0.10),
       new THREE.Vector3(0.02, 0.02, -0.15),
       new THREE.Vector3(-0.03, 0.01, -0.20),
-      new THREE.Vector3(0.00, 0.00, 0.00),
+      new THREE.Vector3(0.00, 0.00, -0.60),
     ];
 
     const camCurveDesktop = new THREE.CatmullRomCurve3(desktopCamPoints, false, "catmullrom", 0.5);
@@ -1096,8 +1096,11 @@ export default function UnifiedIrisHero({
         fogDensity = THREE.MathUtils.lerp(0.04, 0.08, (p - 0.15) / 0.25);
       } else if (p <= 0.75) {
         fogDensity = THREE.MathUtils.lerp(0.08, 0.12, (p - 0.40) / 0.35);
+      } else if (p <= 0.84) {
+        fogDensity = THREE.MathUtils.lerp(0.12, 0.05, (p - 0.75) / 0.09);
       } else {
-        fogDensity = THREE.MathUtils.lerp(0.12, 0.07, (p - 0.75) / 0.25);
+        const t = Math.min(1.0, (p - 0.84) / 0.14);
+        fogDensity = Math.max(0.0, THREE.MathUtils.lerp(0.05, 0.0, t));
       }
       fogMaterial.uniforms.uDensity.value = fogDensity;
       fogMaterial.uniforms.uTime.value = elapsed;
@@ -1115,8 +1118,14 @@ export default function UnifiedIrisHero({
       fogMaterial.uniforms.uRefractShift.value = refractShift;
       fogMaterial.uniforms.uExposure.value = exposureLift;
 
-      // ── Particles Animation ──
+      // ── Particles Animation & Exit Fade ──
       particleMaterial.uniforms.uTime.value = elapsed;
+      if (p > 0.84) {
+        const tPart = Math.min(1.0, (p - 0.84) / 0.14);
+        particleMaterial.opacity = THREE.MathUtils.lerp(0.7, 0.0, tPart);
+      } else {
+        particleMaterial.opacity = 0.7;
+      }
 
       // ── Update 11 3D Layer Meshes ──
       layerItems.forEach((item, idx) => {
@@ -1161,9 +1170,9 @@ export default function UnifiedIrisHero({
           scale = THREE.MathUtils.lerp(sep.scale, (sep.scale + fin.scale) * 0.5, t);
           opacity = 1.0;
           highlight = Math.sin(t * Math.PI) * 0.35;
-        } else if (p <= 0.88) {
-          // Transformation & Framing
-          const t = (p - 0.72) / 0.16;
+        } else if (p <= 0.84) {
+          // Transformation & Framing (0.72 - 0.84)
+          const t = (p - 0.72) / 0.12;
           posX = THREE.MathUtils.lerp((sep.x + fin.x) * 0.5, fin.x, t);
           posY = THREE.MathUtils.lerp((sep.y + fin.y) * 0.5, fin.y, t);
           posZ = THREE.MathUtils.lerp((sep.z + fin.z) * 0.45, fin.z, t);
@@ -1174,21 +1183,28 @@ export default function UnifiedIrisHero({
           opacity = THREE.MathUtils.lerp(1.0, fin.opacity, t);
           erosion = 0.0;
         } else {
-          // Settled Framing State for Gallery Handoff (0.88 - 1.00)
-          const t = (p - 0.88) / 0.12;
-          posX = fin.x;
-          posY = fin.y;
-          posZ = fin.z;
-          rotZ = fin.rotZ;
+          // Full Forward Immersion & Clean Section Exit (0.84 - 1.00)
+          // Camera continues forward through core; layers part outward and dissolve completely to 0.0
+          const t = Math.min(1.0, (p - 0.84) / 0.13); // Reaches 1.0 at p = 0.97
+          const easeOut = t * t * (3.0 - 2.0 * t);
+
+          const dirX = Math.sign(fin.x || (idx % 2 === 0 ? 1 : -1));
+          const dirY = Math.sign(fin.y || (idx % 3 === 0 ? 1 : -1));
+          posX = fin.x + dirX * easeOut * 2.2;
+          posY = fin.y + dirY * easeOut * 1.8;
+          posZ = fin.z - easeOut * 1.5;
+          rotZ = fin.rotZ + easeOut * 0.2;
           rotX = fin.rotX;
           rotY = fin.rotY;
-          scale = fin.scale;
-          opacity = THREE.MathUtils.lerp(fin.opacity, fin.opacity * 0.85, t);
-          erosion = 0.0;
+          scale = fin.scale * (1.0 + easeOut * 0.85);
+
+          // Absolute dissolution to 0.0: NO leftover ring fragments or floating pieces
+          opacity = Math.max(0.0, fin.opacity * (1.0 - easeOut));
+          erosion = easeOut * 0.6;
         }
 
-        // Apply subtle micro-motion drift when separated
-        if (p > 0.15) {
+        // Apply subtle micro-motion drift only when visible
+        if (p > 0.15 && p < 0.90) {
           const drift = Math.sin(elapsed * 0.7 + idx * 0.8) * 0.012;
           posX += drift * 0.5;
           posY += drift;
@@ -1197,6 +1213,7 @@ export default function UnifiedIrisHero({
         mesh.position.set(posX, posY, posZ);
         mesh.rotation.set(rotX, rotY, rotZ);
         mesh.scale.set(scale, scale, 1);
+        mesh.visible = opacity > 0.005;
         material.uniforms.uOpacity.value = opacity;
         material.uniforms.uErosion.value = erosion;
         material.uniforms.uHighlight.value = highlight;

@@ -177,16 +177,16 @@ export default function CoupleExperience() {
         ref={containerRef}
         className="relative z-30 w-full h-screen overflow-hidden bg-[#030405] text-[#f0f0f2] flex flex-col justify-between p-6 sm:p-10 md:p-12 select-none"
       >
-      {/* Top Meta Label */}
-      <div className="relative z-20 flex items-center justify-between w-full">
-        <div className="flex items-center gap-2.5 text-[10px] font-mono tracking-[0.30em] uppercase text-[#7ec8e3]">
-          <span className="w-1.5 h-1.5 rounded-full bg-[#7ec8e3] animate-pulse" />
-          <span>04 / DUAL HARMONY</span>
+        {/* Top Meta Label */}
+        <div className="relative z-20 flex items-center justify-between w-full">
+          <div className="flex items-center gap-2 text-[10px] font-mono tracking-[0.28em] uppercase text-white/50">
+            <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
+            <span>03 / DUAL HARMONY</span>
+          </div>
+          <span className="text-[10px] font-mono tracking-widest uppercase text-white/40">
+            INTERLOCKING STROMA
+          </span>
         </div>
-        <span className="text-[10px] font-mono tracking-widest uppercase text-[#555566]">
-          INTERLOCKING STROMA
-        </span>
-      </div>
 
       {/* Main 3D Choreography Stage */}
       <div className="relative z-10 w-full flex-1 flex items-center justify-center">
@@ -246,11 +246,11 @@ export default function CoupleExperience() {
 
         <div ref={actionRef} className="flex items-center gap-4">
           <Link
-            href="/products"
-            className="group inline-flex items-center gap-3 px-6 py-3 border border-[#2a2a3a] hover:border-[#7ec8e3] bg-[#07070c]/80 backdrop-blur-md text-xs font-mono tracking-[0.20em] uppercase text-white transition-all duration-300"
+            href="/shop"
+            className="group inline-flex items-center gap-3 px-6 py-3 border border-white/20 hover:border-white bg-black/60 text-xs font-mono tracking-[0.20em] uppercase text-white transition-all duration-300"
           >
             <span>EXPLORE COUPLE ARTWORK</span>
-            <ArrowUpRight className="w-4 h-4 text-[#7ec8e3] transition-transform duration-300 group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
+            <ArrowUpRight className="w-4 h-4 text-white transition-transform duration-300 group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
           </Link>
         </div>
       </div>

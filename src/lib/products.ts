@@ -1,0 +1,133 @@
+export interface ProductItem {
+  id: string;
+  name: string;
+  category: string;
+  formatLabel: string;
+  price: number;
+  image: string;
+  tagline: string;
+  description: string;
+  sizes: string[];
+  specs: string[];
+  personalization: string;
+}
+
+export const PRODUCTS_CATALOG: ProductItem[] = [
+  {
+    id: "prod-digital",
+    name: "Digital Artwork",
+    category: "Master Asset",
+    formatLabel: "4K Master File",
+    price: 299,
+    image: "/assets/products/product_digital.webp",
+    tagline: "Ultra-resolution master file calibrated to P3 wide gamut.",
+    description: "Lossless 4096×4096 biometric digital asset ready for high-fidelity displays and personal archiving.",
+    sizes: ["4K UHD (4096×4096)", "8K Master (8192×8192)"],
+    specs: ["P3 Wide-Color Gamut", "Cryptographic Authenticity Hash", "Studio Raw Color Calibration"],
+    personalization: "Authenticated with unique biometric coordinates and date of capture.",
+  },
+  {
+    id: "prod-photo-print",
+    name: "Photo Print",
+    category: "Photographic Paper",
+    formatLabel: "Archival Lustre",
+    price: 399,
+    image: "/assets/products/product_photo_print.webp",
+    tagline: "Direct optical print on archival metallic paper.",
+    description: "Chromogenic print engineered with high silver content for deep optical blacks and micro-fiber sharpness.",
+    sizes: ["20 × 20 cm", "30 × 30 cm", "40 × 40 cm"],
+    specs: ["Fuji Crystal Archive Lustre", "Fade-resistant for 75+ years", "Embossed Studio Signature"],
+    personalization: "Individually stamped and numbered with atelier certification.",
+  },
+  {
+    id: "prod-fine-art",
+    name: "Fine Art Print",
+    category: "Museum Wall Art",
+    formatLabel: "100% Cotton Rag",
+    price: 499,
+    image: "/assets/products/product_fine_art.webp",
+    tagline: "Museum-grade pigment print on pure cotton paper.",
+    description: "Hahnemühle 310gsm archival cotton rag crafted with pure mineral pigment inks for velvety stroma depth.",
+    sizes: ["30 × 30 cm", "50 × 50 cm", "70 × 70 cm"],
+    specs: ["Hahnemühle Photo Rag 310gsm", "12-color Mineral Pigment Inks", "Acid-Free Archival Standard"],
+    personalization: "Includes embossed seal and handcrafted archival Certificate of Authenticity.",
+  },
+  {
+    id: "prod-framed",
+    name: "Framed Artwork",
+    category: "Gallery Display",
+    formatLabel: "Anodized Box Frame",
+    price: 799,
+    image: "/assets/products/product_framed.webp",
+    tagline: "Precision aluminum box frame with museum glass.",
+    description: "40mm deep aerospace matte black aluminum frame with 99% UV-protective non-reflective museum glass.",
+    sizes: ["40 × 40 cm", "60 × 60 cm", "80 × 80 cm"],
+    specs: ["Anodized Aerospace Aluminum", "Museum Anti-Reflective Glass", "Archival Floating Mount"],
+    personalization: "Pre-fitted with laser-engraved titanium authentication plate.",
+  },
+  {
+    id: "prod-acrylic-block",
+    name: "Acrylic Block",
+    category: "Sculptural Object",
+    formatLabel: "30mm Polished Block",
+    price: 649,
+    image: "/assets/products/product_acrylic_block.webp",
+    tagline: "Freestanding display piece revealing the depth of your iris.",
+    description: "Diamond-polished monolithic acrylic block that refracts ambient light through the collagen stroma.",
+    sizes: ["15 × 15 cm (30mm depth)", "20 × 20 cm (30mm depth)"],
+    specs: ["Optical Cast Acrylic", "Diamond-Wheel Polished Edges", "Freestanding Stability"],
+    personalization: "Laser-inscribed with subject monogram on lower facet.",
+  },
+  {
+    id: "prod-light-box",
+    name: "Light Box",
+    category: "Luminescent Art",
+    formatLabel: "Backlit Slimline",
+    price: 999,
+    image: "/assets/products/product_light_box.webp",
+    tagline: "Ultra-slim backlit frame softly glowing in ambient darkness.",
+    description: "High-CRI edge-lit LED light box illuminating the microscopic transillumination of the iris crypts.",
+    sizes: ["40 × 40 cm", "60 × 60 cm"],
+    specs: ["95+ CRI Diffused Backlight", "Touch Dimmer Control", "Matte Anodized Frame"],
+    personalization: "Custom calibrated color temperature matched to your iris tone.",
+  },
+  {
+    id: "prod-jewelry",
+    name: "Jewelry & Pendant",
+    category: "Wearable Artifact",
+    formatLabel: "Sterling Silver / 18k",
+    price: 549,
+    image: "/assets/products/product_jewelry.webp",
+    tagline: "Fine jewelry piece carrying your unique biometric signature.",
+    description: "Solid sterling silver or 18k white gold bezel setting with a scratch-resistant curved sapphire crystal.",
+    sizes: ["18mm Medallion", "24mm Signature Medallion"],
+    specs: ["925 Sterling Silver / 18K Gold", "Convex Sapphire Crystal Dome", "Microscopic 0.01mm Pigment Film"],
+    personalization: "Custom engraved initials and atelier hallmark on reverse.",
+  },
+  {
+    id: "prod-couple",
+    name: "Couple Artwork",
+    category: "Dual Composition",
+    formatLabel: "Panoramic Wall Piece",
+    price: 899,
+    image: "/assets/products/product_couple.webp",
+    tagline: "Two irises interlocking into one continuous visual harmony.",
+    description: "Panoramic composition fusing two individual macro captures into a single fine art piece for shared living spaces.",
+    sizes: ["80 × 40 cm", "120 × 60 cm", "160 × 80 cm"],
+    specs: ["Seamless Blended Stroma", "Deep Gallery Box Frame", "Museum Glass Standard"],
+    personalization: "Includes both partners' biometric timestamps and signature seals.",
+  },
+  {
+    id: "prod-family",
+    name: "Family Artwork",
+    category: "Constellation Piece",
+    formatLabel: "Multi-Iris Panoramic",
+    price: 1299,
+    image: "/assets/products/product_family.webp",
+    tagline: "Three to five irises arranged in a grand constellation.",
+    description: "A monumental heritage centerpiece uniting the biometric patterns of your family in balanced compositional harmony.",
+    sizes: ["100 × 45 cm (3 Irises)", "140 × 50 cm (4–5 Irises)"],
+    specs: ["Custom Curated Spacing", "Archival Mineral Pigments", "Architectural Museum Frame"],
+    personalization: "Individual name and birthdate calligraphy on lower archival mat border.",
+  },
+];

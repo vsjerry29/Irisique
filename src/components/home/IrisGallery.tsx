@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useRef, useEffect, useCallback } from "react";
+import { createPortal } from "react-dom";
 import Image from "next/image";
 import Link from "next/link";
 import { ChevronLeft, ChevronRight, X, ArrowUpRight, Eye } from "lucide-react";
@@ -23,6 +24,7 @@ export default function IrisGallery({ isEmbedded = false }: IrisGalleryProps) {
   const [dragOffset, setDragOffset] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
   const [velocity, setVelocity] = useState(0);
+  const [mounted, setMounted] = useState(false);
 
   const containerRef = useRef<HTMLDivElement>(null);
   const startXRef = useRef(0);
@@ -34,6 +36,21 @@ export default function IrisGallery({ isEmbedded = false }: IrisGalleryProps) {
   const { addItem } = useCart();
 
   const activeItem = GALLERY_ITEMS[activeIndex];
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  // Body scroll locking when artwork detail modal is open
+  useEffect(() => {
+    if (selectedArtwork) {
+      const prevOverflow = document.body.style.overflow;
+      document.body.style.overflow = "hidden";
+      return () => {
+        document.body.style.overflow = prevOverflow;
+      };
+    }
+  }, [selectedArtwork]);
 
   // Drag Handlers with Smooth Momentum
   const handlePointerDown = (clientX: number) => {
@@ -277,15 +294,15 @@ export default function IrisGallery({ isEmbedded = false }: IrisGalleryProps) {
       </div>
 
       {/* Active Artwork Meta Footer */}
-      <div className="relative z-10 max-w-7xl mx-auto w-full px-6 sm:px-10 md:px-16 flex flex-col sm:flex-row sm:items-end justify-between gap-6 border-t border-[#161622] pt-6">
+      <div className="relative z-10 max-w-7xl mx-auto w-full px-6 sm:px-10 md:px-16 flex flex-col sm:flex-row sm:items-end justify-between gap-6 border-t border-white/10 pt-6">
         <div className="flex flex-col gap-1">
-          <span className="text-[10px] font-mono tracking-[0.24em] uppercase text-[#7ec8e3]">
+          <span className="text-[10px] font-mono tracking-[0.24em] uppercase text-white/50">
             {activeItem.category} • {activeItem.specs}
           </span>
           <h3 className="font-display text-xl sm:text-2xl font-light tracking-wide uppercase text-white">
             {activeItem.name}
           </h3>
-          <p className="text-xs font-sans text-[#8e8e9c] max-w-md">
+          <p className="text-xs font-sans text-white/60 max-w-md">
             {activeItem.description}
           </p>
         </div>
@@ -293,9 +310,9 @@ export default function IrisGallery({ isEmbedded = false }: IrisGalleryProps) {
         <div className="flex items-center gap-4">
           <button
             onClick={() => setSelectedArtwork(activeItem)}
-            className="px-6 py-3 border border-[#2a2a3a] hover:border-[#7ec8e3] bg-[#0c0c14]/80 text-xs font-mono tracking-[0.20em] uppercase text-[#ededf0] hover:text-white transition-all"
+            className="px-6 py-3 border border-white/20 hover:border-white bg-black/60 text-xs font-mono tracking-[0.20em] uppercase text-white transition-all cursor-pointer"
           >
-            EXPLORE ARTWORK
+            EXPLORE DETAILS
           </button>
           <button
             onClick={() =>
@@ -309,102 +326,105 @@ export default function IrisGallery({ isEmbedded = false }: IrisGalleryProps) {
                 irisArtworkName: activeItem.name,
               })
             }
-            className="px-6 py-3 bg-[#7ec8e3] hover:bg-[#68bcdb] text-[#030304] text-xs font-sans font-semibold tracking-[0.20em] uppercase transition-all"
+            className="px-6 py-3 bg-white hover:bg-neutral-200 text-black text-xs font-sans font-semibold tracking-[0.20em] uppercase transition-all cursor-pointer"
           >
             ORDER FROM ₹{activeItem.price}
           </button>
         </div>
       </div>
 
-      {/* ─── Fullscreen Artwork Selection Overlay ─── */}
-      {selectedArtwork && (
-        <div
-          role="dialog"
-          aria-modal="true"
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-8 md:p-14 bg-[#030405]/95 backdrop-blur-2xl text-[#f0f0f2] animate-fadeIn"
-        >
-          {/* Close Button */}
-          <button
-            onClick={() => setSelectedArtwork(null)}
-            className="absolute top-6 right-6 sm:top-8 sm:right-10 flex items-center gap-2.5 px-4 py-2 border border-[#262638] bg-[#08080f]/80 text-xs font-mono tracking-widest text-[#9e9eb0] hover:text-white hover:border-[#7ec8e3]/70 transition-all z-20"
+      {/* ─── Fullscreen Artwork Selection Overlay (Mounted via Portal above all UI) ─── */}
+      {selectedArtwork && mounted && typeof document !== "undefined" &&
+        createPortal(
+          <div
+            role="dialog"
+            aria-modal="true"
+            className="fixed inset-0 z-[99999] flex items-center justify-center p-4 sm:p-8 md:p-14 bg-black/95 backdrop-blur-2xl text-[#f0f0f2] animate-fadeIn select-none"
           >
-            <span>CLOSE [ESC]</span>
-            <X className="w-4 h-4 text-[#7ec8e3]" />
-          </button>
+            {/* Unobstructed Close Button (Fixed to body, priority over all header UI) */}
+            <button
+              onClick={() => setSelectedArtwork(null)}
+              className="fixed top-6 right-6 sm:top-8 sm:right-10 flex items-center gap-2 px-4 py-2.5 border border-white/20 bg-black/90 hover:bg-white hover:text-black text-xs font-mono tracking-widest text-white transition-all duration-300 z-[100000] cursor-pointer shadow-[0_8px_32px_rgba(0,0,0,0.9)]"
+              aria-label="Close details"
+            >
+              <span>CLOSE [ESC]</span>
+              <X className="w-4 h-4" />
+            </button>
 
-          <div className="relative w-full max-w-6xl h-full flex flex-col md:flex-row items-center justify-between gap-8 md:gap-14 my-auto">
-            {/* Expanded High-Resolution Artwork Presentation */}
-            <div className="relative w-[320px] sm:w-[480px] md:w-[560px] aspect-square rounded-full p-3 border border-[#2e2e42] bg-[#050608] shadow-[0_0_80px_rgba(0,0,0,0.8)]">
-              <div className="relative w-full h-full rounded-full overflow-hidden">
-                <Image
-                  src={selectedArtwork.image}
-                  alt={selectedArtwork.name}
-                  fill
-                  sizes="(max-width: 768px) 320px, 560px"
-                  priority
-                  className="object-cover animate-scaleUp"
-                />
+            <div className="relative w-full max-w-5xl flex flex-col md:flex-row items-center justify-between gap-8 md:gap-14 my-auto overflow-y-auto max-h-[90vh] py-6">
+              {/* Expanded High-Resolution Artwork Presentation */}
+              <div className="relative w-[280px] sm:w-[420px] md:w-[480px] aspect-square rounded-full p-2 border border-white/20 bg-[#050608] shadow-[0_0_80px_rgba(0,0,0,0.9)] shrink-0">
+                <div className="relative w-full h-full rounded-full overflow-hidden">
+                  <Image
+                    src={selectedArtwork.image}
+                    alt={selectedArtwork.name}
+                    fill
+                    sizes="(max-width: 768px) 280px, 480px"
+                    priority
+                    className="object-cover"
+                  />
+                </div>
+              </div>
+
+              {/* Artwork Details & Purchase Actions */}
+              <div className="flex flex-col gap-5 max-w-md text-left">
+                <div className="flex flex-col gap-1.5">
+                  <span className="font-mono text-[10px] tracking-[0.28em] uppercase text-white/50">
+                    {selectedArtwork.category}
+                  </span>
+                  <h3 className="font-display text-3xl sm:text-4xl font-light tracking-[-0.03em] uppercase text-white">
+                    {selectedArtwork.name}
+                  </h3>
+                  <span className="font-mono text-xs text-white/70">
+                    From ₹{selectedArtwork.price} • {selectedArtwork.colorName}
+                  </span>
+                </div>
+
+                <p className="font-sans text-xs text-white/60 leading-relaxed">
+                  {selectedArtwork.description} Captured using dual-polarised macro illumination, revealing the true three-dimensional topography of the collagen fibers.
+                </p>
+
+                <div className="p-4 border border-white/10 bg-white/[0.02] font-mono text-[11px] text-white/60 flex flex-col gap-1.5">
+                  <span className="text-white font-medium">ATELIER SPECIFICATION</span>
+                  <span>• Sensor: Medium Format Macro CCD</span>
+                  <span>• Spectral Lighting: 5400K Diffused Strobes</span>
+                  <span>• Detail: Microscopic 0.01mm Stroma</span>
+                </div>
+
+                <div className="flex flex-wrap items-center gap-3 pt-2">
+                  <button
+                    onClick={() => {
+                      addItem({
+                        productId: "prod-print",
+                        title: selectedArtwork.name,
+                        format: "print",
+                        size: "Gallery Medium (A3)",
+                        price: selectedArtwork.price,
+                        quantity: 1,
+                        irisArtworkName: selectedArtwork.name,
+                      });
+                      setSelectedArtwork(null);
+                    }}
+                    className="inline-flex items-center gap-3 px-6 py-3.5 bg-white hover:bg-neutral-200 text-black text-xs font-sans font-semibold tracking-[0.20em] uppercase transition-all cursor-pointer"
+                  >
+                    <span>ADD TO CART</span>
+                    <ArrowUpRight className="w-4 h-4 text-black" />
+                  </button>
+
+                  <Link
+                    href={`/shop`}
+                    onClick={() => setSelectedArtwork(null)}
+                    className="px-6 py-3.5 border border-white/20 hover:border-white text-xs font-mono tracking-[0.20em] uppercase text-white transition-all cursor-pointer"
+                  >
+                    EXPLORE FORMATS
+                  </Link>
+                </div>
               </div>
             </div>
-
-            {/* Artwork Details & Purchase Actions */}
-            <div className="flex flex-col gap-6 max-w-md text-left">
-              <div className="flex flex-col gap-2">
-                <span className="font-mono text-xs tracking-[0.28em] uppercase text-[#7ec8e3]">
-                  {selectedArtwork.category}
-                </span>
-                <h3 className="font-display text-3xl sm:text-5xl font-light tracking-[-0.03em] uppercase text-white">
-                  {selectedArtwork.name}
-                </h3>
-                <span className="font-mono text-sm text-[#d4d4dc]">
-                  From ₹{selectedArtwork.price} • {selectedArtwork.colorName}
-                </span>
-              </div>
-
-              <p className="font-sans text-xs sm:text-sm text-[#9a9aa8] leading-relaxed">
-                {selectedArtwork.description} Captured using dual-polarised macro illumination,
-                revealing the true 3D topography of the collagen fibers.
-              </p>
-
-              <div className="p-4 border border-[#1e1e2c] bg-[#0a0a12]/70 font-mono text-xs text-[#808092] flex flex-col gap-1.5">
-                <span className="text-white">SPECIFICATION OVERVIEW</span>
-                <span>• Sensor: Medium Format Macro CCD</span>
-                <span>• Spectral Lighting: 5400K Diffused Strobes</span>
-                <span>• Resolution: Microscopic 0.01mm Stroma</span>
-              </div>
-
-              <div className="flex flex-wrap items-center gap-4 pt-2">
-                <button
-                  onClick={() => {
-                    addItem({
-                      productId: "prod-print",
-                      title: selectedArtwork.name,
-                      format: "print",
-                      size: "Gallery Medium (A3)",
-                      price: selectedArtwork.price,
-                      quantity: 1,
-                      irisArtworkName: selectedArtwork.name,
-                    });
-                    setSelectedArtwork(null);
-                  }}
-                  className="inline-flex items-center gap-3 px-6 py-3.5 bg-[#7ec8e3] hover:bg-[#68bcdb] text-[#030304] text-xs font-sans font-semibold tracking-[0.20em] uppercase transition-all"
-                >
-                  <span>ADD TO ATELIER CART</span>
-                  <ArrowUpRight className="w-4 h-4" />
-                </button>
-
-                <Link
-                  href={`/products`}
-                  onClick={() => setSelectedArtwork(null)}
-                  className="px-6 py-3.5 border border-[#2a2a3a] hover:border-[#7ec8e3] text-xs font-mono tracking-[0.20em] uppercase text-white transition-all"
-                >
-                  VIEW ALL FORMATS
-                </Link>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+          </div>,
+          document.body
+        )
+      }
     </section>
   );
 }

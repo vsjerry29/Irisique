@@ -24,17 +24,17 @@ export default function HeroUI({ onDiscoverClick }: HeroUIProps) {
           <div className="flex items-center gap-4 pt-1">
             <Link
               href="/book"
-              className="group inline-flex items-center gap-3 px-6 py-3.5 border border-[#7ec8e3] bg-[#7ec8e3] hover:bg-[#68bcdb] text-xs font-sans tracking-[0.22em] uppercase font-semibold text-[#030304] transition-all duration-300"
+              className="group inline-flex items-center gap-3 px-6 py-3.5 border border-white bg-white hover:bg-neutral-200 text-xs font-sans tracking-[0.22em] uppercase font-semibold text-black transition-all duration-300"
             >
               <span>BOOK YOUR IRIS</span>
-              <ArrowUpRight className="w-4 h-4 text-[#030304] transition-transform duration-300 group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
+              <ArrowUpRight className="w-4 h-4 text-black transition-transform duration-300 group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
             </Link>
           </div>
         </div>
 
         {/* Right Column: Micro-label */}
-        <div className="flex items-center gap-2 text-[10px] sm:text-[11px] tracking-[0.26em] uppercase text-[#737382] font-mono">
-          <span className="w-1.5 h-1.5 rounded-full bg-[#7ec8e3] animate-pulse" />
+        <div className="flex items-center gap-2 text-[10px] sm:text-[11px] tracking-[0.26em] uppercase text-white/50 font-mono">
+          <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
           <span>SCROLL TO EXPLORE</span>
         </div>
       </div>

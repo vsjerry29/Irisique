@@ -19,7 +19,7 @@ export default function CartDrawer() {
         {/* Header */}
         <div className="flex items-center justify-between border-b border-[#181822] pb-5">
           <div className="flex items-center gap-3">
-            <ShoppingBag className="w-5 h-5 text-[#7ec8e3]" />
+            <ShoppingBag className="w-5 h-5 text-white" />
             <h3 className="font-display text-lg tracking-[0.16em] uppercase text-white">
               YOUR ATELIER CART
             </h3>
@@ -52,7 +52,7 @@ export default function CartDrawer() {
                   <span className="font-display text-sm tracking-wide text-white uppercase">
                     {item.title}
                   </span>
-                  <span className="font-mono text-[11px] text-[#7ec8e3] tracking-widest uppercase">
+                  <span className="font-mono text-[11px] text-white/60 tracking-widest uppercase">
                     {item.format} • {item.size}
                   </span>
                   {item.irisArtworkName && (
@@ -111,7 +111,7 @@ export default function CartDrawer() {
             <Link
               href="/shop"
               onClick={() => setIsCartOpen(false)}
-              className="inline-flex items-center justify-center gap-3 w-full py-3.5 bg-[#7ec8e3] hover:bg-[#68bcdb] text-[#030304] font-sans font-semibold text-xs tracking-[0.22em] uppercase transition-all"
+              className="inline-flex items-center justify-center gap-3 w-full py-3.5 bg-white hover:bg-neutral-200 text-black font-sans font-semibold text-xs tracking-[0.22em] uppercase transition-all"
             >
               <span>PROCEED TO ORDER ENQUIRY</span>
               <ArrowRight className="w-4 h-4" />

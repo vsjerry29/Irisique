@@ -34,7 +34,7 @@ export default function Header({ onReplayIntro }: HeaderProps) {
             className="group flex items-center gap-2 select-none"
             title="IRIS — Home"
           >
-            <span className="font-display font-medium text-xl sm:text-2xl tracking-[0.34em] text-[#f5f5f7] uppercase transition-colors duration-300 group-hover:text-[#7ec8e3]">
+            <span className="font-display font-medium text-xl sm:text-2xl tracking-[0.34em] text-[#f5f5f7] uppercase transition-colors duration-300 group-hover:text-white">
               IRIS<sup className="text-xs ml-0.5 tracking-normal opacity-70">®</sup>
             </span>
           </Link>
@@ -49,8 +49,8 @@ export default function Header({ onReplayIntro }: HeaderProps) {
               className="relative p-2 text-[#b0b0c0] hover:text-white transition-colors"
               aria-label={`Cart with ${totalCount} items`}
             >
-              <ShoppingBag className="w-4 h-4 text-[#7ec8e3]" />
-              <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-[#7ec8e3] text-[#030304] text-[9px] font-mono font-bold flex items-center justify-center">
+              <ShoppingBag className="w-4 h-4 text-white" />
+              <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-white text-black text-[9px] font-mono font-bold flex items-center justify-center">
                 {totalCount}
               </span>
             </button>
@@ -60,7 +60,7 @@ export default function Header({ onReplayIntro }: HeaderProps) {
           {onReplayIntro && isHeroInView && (
             <button
               onClick={onReplayIntro}
-              className="hidden lg:inline-block text-[10px] font-mono tracking-[0.20em] uppercase text-[#606072] hover:text-[#7ec8e3] transition-colors duration-200 px-2 animate-fadeIn"
+              className="hidden lg:inline-block text-[10px] font-mono tracking-[0.20em] uppercase text-white/40 hover:text-white transition-colors duration-200 px-2 animate-fadeIn"
               title="Replay Cinematic Opening"
             >
               REPLAY [R]
@@ -70,7 +70,7 @@ export default function Header({ onReplayIntro }: HeaderProps) {
           {/* MENU Button */}
           <button
             onClick={() => setIsMenuOpen(true)}
-            className="px-3.5 py-2 sm:px-4 sm:py-2 border border-[#262634] hover:border-[#7ec8e3]/60 bg-[#07070b]/80 backdrop-blur-md text-[10px] sm:text-[11px] font-mono tracking-[0.24em] uppercase text-[#cfcfd8] hover:text-white transition-all duration-300"
+            className="px-3.5 py-2 sm:px-4 sm:py-2 border border-white/20 hover:border-white bg-black/80 backdrop-blur-md text-[10px] sm:text-[11px] font-mono tracking-[0.24em] uppercase text-[#cfcfd8] hover:text-white transition-all duration-300 cursor-pointer"
           >
             MENU
           </button>
@@ -78,10 +78,10 @@ export default function Header({ onReplayIntro }: HeaderProps) {
           {/* BOOK Button */}
           <Link
             href="/book"
-            className="inline-flex items-center gap-2 px-4 py-2 sm:px-5 sm:py-2 border border-[#7ec8e3]/80 bg-[#7ec8e3]/10 hover:bg-[#7ec8e3]/20 backdrop-blur-md text-[10px] sm:text-[11px] font-sans tracking-[0.22em] uppercase font-semibold text-white transition-all duration-300"
+            className="inline-flex items-center gap-2 px-4 py-2 sm:px-5 sm:py-2 border border-white/30 bg-white/5 hover:bg-white hover:text-black backdrop-blur-md text-[10px] sm:text-[11px] font-sans tracking-[0.22em] uppercase font-semibold text-white transition-all duration-300"
           >
             <span>BOOK</span>
-            <ArrowUpRight className="w-3.5 h-3.5 text-[#7ec8e3]" />
+            <ArrowUpRight className="w-3.5 h-3.5" />
           </Link>
         </div>
       </header>
