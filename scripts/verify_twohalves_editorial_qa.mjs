@@ -214,39 +214,36 @@ async function runQA() {
     // TEST 4: PHOTOGRAPHIC PROCESS EXPERIENCE (FROM CAPTURE TO ART)
     // ------------------------------------------------------------------
     console.log('Testing Photographic Process Experience (Capture / Create / Keep)...');
-    await page.evaluate(() => {
+    const expScrollY = await page.evaluate(() => {
       const el = document.getElementById('experience') || document.querySelector('section[data-section="process"]');
-      if (el) el.scrollIntoView({ behavior: 'instant' });
+      return el ? el.getBoundingClientRect().top + window.scrollY : 0;
     });
-    await new Promise(r => setTimeout(r, 1000));
 
-    // Capture state
+    // Step 1: Capture state (top of pinned section)
+    await page.evaluate(y => window.scrollTo({ top: y, behavior: 'instant' }), expScrollY);
+    await new Promise(r => setTimeout(r, 700));
     const captureShot = path.join(OUT_DIR, '08_desktop_1440_process_capture.png');
     await page.screenshot({ path: captureShot });
     fs.copyFileSync(captureShot, path.join(ARTIFACT_QA_DIR, '08_desktop_1440_process_capture.png'));
     await snapFrame(page, 'process_capture');
 
-    // Click CREATE
-    const createBtn = await page.$('button[data-step="create"], button[data-step="1"], #experience button:nth-of-type(2)');
-    if (createBtn) {
-      await createBtn.click();
-      await new Promise(r => setTimeout(r, 800));
-      const createShot = path.join(OUT_DIR, '09_desktop_1440_process_create.png');
-      await page.screenshot({ path: createShot });
-      fs.copyFileSync(createShot, path.join(ARTIFACT_QA_DIR, '09_desktop_1440_process_create.png'));
-      await snapFrame(page, 'process_create');
-    }
+    // Step 2: Create state (scrolled ~50% into pinned travel)
+    console.log('Scrolling into Create state...');
+    await page.evaluate((y, h) => window.scrollTo({ top: y + h * 0.9, behavior: 'instant' }), expScrollY, 900);
+    await new Promise(r => setTimeout(r, 700));
+    const createShot = path.join(OUT_DIR, '09_desktop_1440_process_create.png');
+    await page.screenshot({ path: createShot });
+    fs.copyFileSync(createShot, path.join(ARTIFACT_QA_DIR, '09_desktop_1440_process_create.png'));
+    await snapFrame(page, 'process_create');
 
-    // Click KEEP
-    const keepBtn = await page.$('button[data-step="keep"], button[data-step="2"], #experience button:nth-of-type(3)');
-    if (keepBtn) {
-      await keepBtn.click();
-      await new Promise(r => setTimeout(r, 800));
-      const keepShot = path.join(OUT_DIR, '10_desktop_1440_process_keep.png');
-      await page.screenshot({ path: keepShot });
-      fs.copyFileSync(keepShot, path.join(ARTIFACT_QA_DIR, '10_desktop_1440_process_keep.png'));
-      await snapFrame(page, 'process_keep');
-    }
+    // Step 3: Keep state (scrolled ~85% into pinned travel)
+    console.log('Scrolling into Keep state...');
+    await page.evaluate((y, h) => window.scrollTo({ top: y + h * 1.6, behavior: 'instant' }), expScrollY, 900);
+    await new Promise(r => setTimeout(r, 700));
+    const keepShot = path.join(OUT_DIR, '10_desktop_1440_process_keep.png');
+    await page.screenshot({ path: keepShot });
+    fs.copyFileSync(keepShot, path.join(ARTIFACT_QA_DIR, '10_desktop_1440_process_keep.png'));
+    await snapFrame(page, 'process_keep');
     auditReport.tests.processSequenceWorking = true;
 
     // Verify 3D scanner render is completely absent

@@ -2,21 +2,20 @@
 
 import React, { useState, useEffect, useRef } from "react";
 import Image from "next/image";
-import Link from "next/link";
 import { createPortal } from "react-dom";
 import { ArrowUpRight, X } from "lucide-react";
 import gsap from "gsap";
+import { ScrollTrigger } from "gsap/ScrollTrigger";
 
 export interface ArtworkComposition {
   id: "solo" | "couple" | "family";
   label: string;
   title: string;
-  subtitle: string;
-  description: string;
+  format: string;
+  dimensions: string;
   image: string;
   aspect: string;
-  dimensions: string;
-  scaleClass: string;
+  maxWidthClass: string;
 }
 
 const COMPOSITIONS: ArtworkComposition[] = [
@@ -24,47 +23,52 @@ const COMPOSITIONS: ArtworkComposition[] = [
     id: "solo",
     label: "SOLO",
     title: "Singular Microcosm",
-    subtitle: "One Subject • Individual Stroma",
-    description: "An intimate, microscopic exploration of individual identity. Every crypt, collagen furrow, and collarette ring captured in singular biometric purity.",
+    format: "Individual Biometric Stroma",
+    dimensions: "Square Fine Art • Up to 100 × 100 cm",
     image: "/assets/gallery/iris_sapphire.webp",
     aspect: "aspect-square",
-    dimensions: "Square Fine Art • Up to 100 × 100 cm",
-    scaleClass: "max-w-2xl",
+    maxWidthClass: "max-w-2xl lg:max-w-3xl",
   },
   {
     id: "couple",
     label: "COUPLE",
     title: "Dual Harmony",
-    subtitle: "Two Subjects • Interwoven Resonance",
-    description: "Two distinct worlds merging into one continuous visual dialogue. The delicate filaments of two irises converge in natural equilibrium.",
+    format: "Interwoven Resonance",
+    dimensions: "Panoramic Diptych • Up to 160 × 80 cm",
     image: "/assets/couple/couple_artwork_final.webp",
     aspect: "aspect-[16/9]",
-    dimensions: "Panoramic Format • Up to 160 × 80 cm",
-    scaleClass: "max-w-4xl",
+    maxWidthClass: "max-w-4xl lg:max-w-5xl",
   },
   {
     id: "family",
     label: "FAMILY",
     title: "Cosmic Constellation",
-    subtitle: "Three to Five Subjects • Heritage Matrix",
-    description: "A monumental heritage composition uniting generational patterns in balanced cosmic spacing. An enduring familial centerpiece.",
+    format: "Generational Heritage Matrix",
+    dimensions: "Grand Horizon • Up to 200 × 90 cm",
     image: "/assets/art/family_artwork_final.webp",
     aspect: "aspect-[16/9]",
-    dimensions: "Grand Panoramic • Up to 200 × 90 cm",
-    scaleClass: "max-w-5xl",
+    maxWidthClass: "max-w-5xl lg:max-w-6xl",
   },
 ];
 
 export default function ArtOfIris() {
   const [activeId, setActiveId] = useState<"solo" | "couple" | "family">("solo");
+  const [incomingId, setIncomingId] = useState<"solo" | "couple" | "family" | null>(null);
   const [isDetailOpen, setIsDetailOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
 
-  const containerRef = useRef<HTMLElement>(null);
-  const artStageRef = useRef<HTMLDivElement>(null);
-  const imageWrapperRef = useRef<HTMLDivElement>(null);
+  const sectionRef = useRef<HTMLElement>(null);
+  const surfaceRef = useRef<HTMLDivElement>(null);
+  const artworkStageRef = useRef<HTMLDivElement>(null);
+  const activeImageRef = useRef<HTMLDivElement>(null);
+  const incomingImageRef = useRef<HTMLDivElement>(null);
+  const headlineRef = useRef<HTMLHeadingElement>(null);
 
   const activeComp = COMPOSITIONS.find((c) => c.id === activeId)!;
+  const incomingComp = incomingId ? COMPOSITIONS.find((c) => c.id === incomingId) : null;
+
+  const isTransitioningRef = useRef(false);
+  const transitionTimelineRef = useRef<gsap.core.Timeline | null>(null);
 
   useEffect(() => {
     setMounted(true);
@@ -81,7 +85,7 @@ export default function ArtOfIris() {
     }
   }, [isDetailOpen]);
 
-  // ESC key listener
+  // Global ESC key listener
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === "Escape" && isDetailOpen) {
@@ -92,52 +96,166 @@ export default function ArtOfIris() {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [isDetailOpen]);
 
-  // Composition Switch Transition (Restrained masked transition, no flicker)
-  const handleSelect = (id: "solo" | "couple" | "family") => {
-    if (id === activeId) return;
+  // ─── Choreographed Background Entrance & Parallax Travel ───
+  useEffect(() => {
+    if (typeof window === "undefined" || !sectionRef.current) return;
 
-    if (artStageRef.current) {
-      gsap.to(artStageRef.current, {
-        opacity: 0.2,
-        scale: 0.98,
-        y: 8,
-        duration: 0.24,
-        ease: "power2.inOut",
+    gsap.registerPlugin(ScrollTrigger);
+
+    const ctx = gsap.context(() => {
+      // 1. Full-viewport curved surface wipe: warm paper retreats dark atmosphere
+      if (surfaceRef.current) {
+        gsap.fromTo(
+          surfaceRef.current,
+          {
+            clipPath: "polygon(0% 6vw, 100% 0%, 100% 100%, 0% 100%)",
+            y: 40,
+          },
+          {
+            clipPath: "polygon(0% 0%, 100% 0%, 100% 100%, 0% 100%)",
+            y: 0,
+            ease: "none",
+            scrollTrigger: {
+              trigger: sectionRef.current,
+              start: "top bottom",
+              end: "top 30%",
+              scrub: 0.5,
+              refreshPriority: 8,
+            },
+          }
+        );
+      }
+
+      // 2. Artwork floats into place before background fully settles (visual continuity)
+      if (artworkStageRef.current) {
+        gsap.fromTo(
+          artworkStageRef.current,
+          {
+            y: 80,
+            scale: 0.96,
+            opacity: 0.7,
+          },
+          {
+            y: -20,
+            scale: 1.0,
+            opacity: 1.0,
+            ease: "none",
+            scrollTrigger: {
+              trigger: sectionRef.current,
+              start: "top 80%",
+              end: "bottom top",
+              scrub: 0.6,
+              refreshPriority: 8,
+            },
+          }
+        );
+      }
+
+      // 3. Subtle relative depth shift between headline and artwork
+      if (headlineRef.current) {
+        gsap.to(headlineRef.current, {
+          y: -40,
+          ease: "none",
+          scrollTrigger: {
+            trigger: sectionRef.current,
+            start: "top bottom",
+            end: "bottom top",
+            scrub: 0.8,
+            refreshPriority: 8,
+          },
+        });
+      }
+    }, sectionRef);
+
+    return () => ctx.revert();
+  }, []);
+
+  // ─── Responsive & Interruptible Masked Composition Switch ───
+  const handleSelect = (id: "solo" | "couple" | "family") => {
+    if (id === activeId && !incomingId) return;
+    if (id === incomingId) return;
+
+    // Interrupt any active transition cleanly
+    if (transitionTimelineRef.current) {
+      transitionTimelineRef.current.kill();
+    }
+
+    setIncomingId(id);
+    isTransitioningRef.current = true;
+
+    // Wait one microtask for incoming container DOM mount
+    requestAnimationFrame(() => {
+      const tl = gsap.timeline({
         onComplete: () => {
           setActiveId(id);
-          gsap.to(artStageRef.current, {
-            opacity: 1,
-            scale: 1,
-            y: 0,
-            duration: 0.42,
-            ease: "power3.out",
-          });
+          setIncomingId(null);
+          isTransitioningRef.current = false;
+          if (activeImageRef.current) {
+            gsap.set(activeImageRef.current, { clearProps: "all" });
+          }
         },
       });
-    } else {
-      setActiveId(id);
-    }
+
+      transitionTimelineRef.current = tl;
+
+      // 1. Current artwork shifts back in depth
+      if (activeImageRef.current) {
+        tl.to(
+          activeImageRef.current,
+          {
+            scale: 0.94,
+            opacity: 0.2,
+            filter: "blur(3px)",
+            duration: 0.45,
+            ease: "power2.inOut",
+          },
+          0
+        );
+      }
+
+      // 2. Incoming artwork enters through the same visual space via controlled mask reveal
+      if (incomingImageRef.current) {
+        tl.fromTo(
+          incomingImageRef.current,
+          {
+            scale: 1.08,
+            opacity: 0,
+            filter: "blur(6px)",
+            clipPath: "polygon(0% 100%, 100% 100%, 100% 100%, 0% 100%)",
+          },
+          {
+            scale: 1.0,
+            opacity: 1,
+            filter: "blur(0px)",
+            clipPath: "polygon(0% 0%, 100% 0%, 100% 100%, 0% 100%)",
+            duration: 0.72,
+            ease: "power3.out",
+          },
+          0.1
+        );
+      }
+    });
   };
 
-  // Subtle interactive perspective shift on mouse move
+  // ─── Tactile Mouse Follow Perspective Shift ───
   const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (!imageWrapperRef.current) return;
-    const rect = imageWrapperRef.current.getBoundingClientRect();
+    if (!artworkStageRef.current) return;
+    const rect = artworkStageRef.current.getBoundingClientRect();
     const x = (e.clientX - rect.left) / rect.width - 0.5;
     const y = (e.clientY - rect.top) / rect.height - 0.5;
 
-    gsap.to(imageWrapperRef.current, {
-      rotateY: x * 6,
-      rotateX: -y * 6,
-      transformPerspective: 1000,
+    gsap.to(artworkStageRef.current, {
+      rotateY: x * 5,
+      rotateX: -y * 5,
+      transformPerspective: 1200,
       duration: 0.4,
       ease: "power1.out",
     });
   };
 
   const handleMouseLeave = () => {
-    if (!imageWrapperRef.current) return;
-    gsap.to(imageWrapperRef.current, {
+    if (!artworkStageRef.current) return;
+    gsap.to(artworkStageRef.current, {
       rotateY: 0,
       rotateX: 0,
       duration: 0.6,
@@ -147,110 +265,145 @@ export default function ArtOfIris() {
 
   return (
     <section
-      ref={containerRef}
+      ref={sectionRef}
       id="art"
       data-theme="light"
-      className="relative z-30 w-full min-h-screen py-24 sm:py-32 md:py-44 bg-[#F4F1EA] text-[#090909] px-6 sm:px-10 md:px-16 lg:px-24 flex flex-col justify-between select-none overflow-hidden"
+      className="relative z-30 w-full min-h-screen bg-[#090909] text-[#090909] select-none overflow-hidden"
     >
-      {/* ─── Two Halves-Style Asymmetrical Header ─── */}
-      <div className="max-w-7xl mx-auto w-full flex flex-col lg:flex-row lg:items-end justify-between gap-8 pb-12 sm:pb-16 border-b border-[#090909]/15">
-        <div className="space-y-4">
-          <div className="flex items-center gap-3 text-xs font-mono tracking-[0.26em] text-[#77736D] uppercase">
-            <span className="w-2 h-2 rounded-full bg-[#090909]" />
-            <span>02 / WORKS THAT MOVE</span>
+      {/* ─── Architectural Warm Paper Surface Layer ─── */}
+      <div
+        ref={surfaceRef}
+        className="relative w-full min-h-screen bg-[#F4F1EA] py-24 sm:py-32 md:py-40 px-6 sm:px-10 md:px-16 lg:px-24 flex flex-col justify-between"
+      >
+        {/* ─── Two Halves Asymmetrical Minimal Header ─── */}
+        <div className="max-w-7xl mx-auto w-full flex flex-col lg:flex-row lg:items-end justify-between gap-8 pb-10 sm:pb-14 border-b border-[#090909]/15">
+          <div className="space-y-3">
+            <div className="flex items-center gap-3 text-xs font-mono tracking-[0.26em] text-[#77736D] uppercase">
+              <span className="w-2 h-2 rounded-full bg-[#090909]" />
+              <span>02 / WORKS THAT MOVE</span>
+            </div>
+            <h2
+              ref={headlineRef}
+              className="font-display text-5xl sm:text-7xl md:text-8xl lg:text-9xl font-bold tracking-[-0.04em] uppercase text-[#090909] leading-[0.84]"
+            >
+              EVERY IRIS<br />IS ART.
+            </h2>
           </div>
-          <h2 className="font-display text-5xl sm:text-7xl md:text-8xl lg:text-9xl font-bold tracking-[-0.04em] uppercase text-[#090909] leading-[0.88]">
-            ART IS IN<br />THE EYE.
-          </h2>
-        </div>
 
-        {/* Minimal Typographic Switcher (SOLO / COUPLE / FAMILY) */}
-        <div className="flex flex-col sm:flex-row sm:items-center gap-6 sm:gap-12 pt-4 lg:pt-0">
-          <div className="flex items-center gap-8 sm:gap-10">
-            {COMPOSITIONS.map((comp) => {
-              const isActive = comp.id === activeId;
-              return (
-                <button
-                  key={comp.id}
-                  onClick={() => handleSelect(comp.id)}
-                  className={`group relative text-base sm:text-lg font-sans tracking-[0.16em] uppercase transition-all duration-300 cursor-pointer ${
-                    isActive
-                      ? "font-bold text-[#090909]"
-                      : "font-normal text-[#77736D] hover:text-[#090909]"
-                  }`}
-                >
-                  <span>{comp.label}</span>
-                  {/* Confident 2px underline */}
-                  <span
-                    className={`absolute -bottom-2 left-0 w-full h-[2px] bg-[#090909] transition-all duration-300 ${
-                      isActive ? "opacity-100 scale-x-100" : "opacity-0 scale-x-0 group-hover:opacity-40 group-hover:scale-x-75"
+          {/* Minimal Controls: Solo / Couple / Family + Explore Artwork */}
+          <div className="flex flex-col sm:flex-row sm:items-center gap-6 sm:gap-12 pt-4 lg:pt-0">
+            <div className="flex items-center gap-8 sm:gap-10">
+              {COMPOSITIONS.map((comp) => {
+                const isActive = (incomingId || activeId) === comp.id;
+                return (
+                  <button
+                    key={comp.id}
+                    data-tab={comp.label}
+                    data-composition={comp.id}
+                    onClick={() => handleSelect(comp.id)}
+                    className={`group relative text-base sm:text-lg font-sans tracking-[0.16em] uppercase transition-all duration-300 cursor-pointer ${
+                      isActive
+                        ? "font-bold text-[#090909]"
+                        : "font-normal text-[#77736D] hover:text-[#090909]"
                     }`}
-                  />
-                </button>
-              );
-            })}
+                  >
+                    <span>{comp.label}</span>
+                    <span
+                      className={`absolute -bottom-2 left-0 w-full h-[2px] bg-[#090909] transition-all duration-300 ${
+                        isActive
+                          ? "opacity-100 scale-x-100"
+                          : "opacity-0 scale-x-0 group-hover:opacity-40 group-hover:scale-x-75"
+                      }`}
+                    />
+                  </button>
+                );
+              })}
+            </div>
+
+            <button
+              data-explore-btn="true"
+              onClick={() => setIsDetailOpen(true)}
+              className="group inline-flex items-center gap-2 text-xs font-sans tracking-[0.20em] uppercase font-bold text-[#090909] hover:opacity-70 transition-opacity cursor-pointer"
+            >
+              <span>EXPLORE ARTWORK</span>
+              <ArrowUpRight className="w-4 h-4 transition-transform duration-200 group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
+            </button>
           </div>
-
-          <button
-            onClick={() => setIsDetailOpen(true)}
-            className="group inline-flex items-center gap-2 text-xs font-sans tracking-[0.20em] uppercase font-bold text-[#090909] hover:opacity-70 transition-opacity"
-          >
-            <span>EXPLORE WORK</span>
-            <ArrowUpRight className="w-4 h-4 transition-transform duration-200 group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
-          </button>
         </div>
-      </div>
 
-      {/* ─── Asymmetrical Dominant Artwork Placement (NO BOXED PANEL) ─── */}
-      <div className="max-w-7xl mx-auto w-full my-auto py-12 sm:py-16 md:py-24 flex flex-col items-center">
+        {/* ─── Asymmetrical Dominant Artwork Placement (NO BOXES, NO BORDERS) ─── */}
         <div
-          ref={artStageRef}
-          className={`w-full ${activeComp.scaleClass} flex flex-col items-center will-change-transform`}
+          className="max-w-7xl mx-auto w-full my-auto py-10 sm:py-16 md:py-20 flex flex-col items-center justify-center relative"
+          onMouseMove={handleMouseMove}
+          onMouseLeave={handleMouseLeave}
         >
-          {/* Frameless Artwork Visual — Floats directly on paper with subtle perspective */}
           <div
-            ref={imageWrapperRef}
-            onMouseMove={handleMouseMove}
-            onMouseLeave={handleMouseLeave}
-            onClick={() => setIsDetailOpen(true)}
-            className={`relative w-full ${activeComp.aspect} max-h-[70vh] cursor-pointer group`}
-            title="Click to inspect high-resolution artwork"
+            ref={artworkStageRef}
+            className={`w-full ${activeComp.maxWidthClass} relative flex flex-col items-center will-change-transform`}
           >
-            <Image
-              src={activeComp.image}
-              alt={activeComp.title}
-              fill
-              priority
-              sizes="(max-width: 1024px) 95vw, 70vw"
-              className="object-contain transition-transform duration-700 ease-out group-hover:scale-[1.02]"
-            />
-          </div>
-
-          {/* Minimal Typography Embedded in Whitespace */}
-          <div className="w-full flex flex-col sm:flex-row sm:items-baseline justify-between gap-4 mt-8 pt-6 border-t border-[#090909]/10 text-[#77736D]">
-            <div className="flex flex-col sm:flex-row sm:items-baseline gap-2 sm:gap-4">
-              <span className="text-sm font-sans tracking-[0.16em] uppercase text-[#090909] font-bold">
-                {activeComp.title}
-              </span>
-              <span className="text-xs font-sans tracking-wide">
-                — {activeComp.subtitle}
-              </span>
+            {/* Active Artwork Plate */}
+            <div
+              ref={activeImageRef}
+              data-artwork-plate="true"
+              onClick={() => setIsDetailOpen(true)}
+              className={`relative w-full ${activeComp.aspect} max-h-[74vh] cursor-pointer group`}
+              title="Click to view artwork fullscreen"
+            >
+              <Image
+                src={activeComp.image}
+                alt={activeComp.title}
+                fill
+                priority
+                sizes="(max-width: 1024px) 95vw, 75vw"
+                className="object-contain transition-transform duration-700 ease-out group-hover:scale-[1.015]"
+              />
             </div>
 
-            <div className="flex items-center gap-8 text-xs font-mono tracking-wider">
-              <span>{activeComp.dimensions}</span>
-              <span className="text-[#090909] font-bold underline underline-offset-4 cursor-pointer" onClick={() => setIsDetailOpen(true)}>
-                VIEW DETAILS ↗
-              </span>
+            {/* Incoming Artwork Plate during Transition */}
+            {incomingComp && (
+              <div
+                ref={incomingImageRef}
+                className={`absolute inset-0 w-full ${incomingComp.aspect} max-h-[74vh] pointer-events-none z-10`}
+              >
+                <Image
+                  src={incomingComp.image}
+                  alt={incomingComp.title}
+                  fill
+                  sizes="(max-width: 1024px) 95vw, 75vw"
+                  className="object-contain"
+                />
+              </div>
+            )}
+
+            {/* Minimal Sub-Headline & Dimension Meta */}
+            <div className="w-full flex flex-col sm:flex-row sm:items-baseline justify-between gap-4 mt-8 pt-6 border-t border-[#090909]/10 text-[#77736D]">
+              <div className="flex flex-col sm:flex-row sm:items-baseline gap-2 sm:gap-4">
+                <span className="text-sm font-sans tracking-[0.16em] uppercase text-[#090909] font-bold">
+                  {incomingComp ? incomingComp.title : activeComp.title}
+                </span>
+                <span className="text-xs font-sans tracking-wide">
+                  — {incomingComp ? incomingComp.format : activeComp.format}
+                </span>
+              </div>
+
+              <div className="flex items-center gap-6 text-xs font-mono tracking-wider">
+                <span>{incomingComp ? incomingComp.dimensions : activeComp.dimensions}</span>
+                <span
+                  className="text-[#090909] font-bold underline underline-offset-4 cursor-pointer hover:opacity-70 transition-opacity"
+                  onClick={() => setIsDetailOpen(true)}
+                >
+                  FULLSCREEN ↗
+                </span>
+              </div>
             </div>
           </div>
         </div>
-      </div>
 
-      {/* ─── Section Bottom Architecture ─── */}
-      <div className="max-w-7xl mx-auto w-full pt-6 flex items-center justify-between text-xs font-mono tracking-[0.24em] uppercase text-[#77736D] border-t border-[#090909]/15">
-        <span>AUTHENTIC BIOMETRIC STROMA</span>
-        <span>ATELIER SPECIFICATION</span>
+        {/* ─── Section Bottom Architecture ─── */}
+        <div className="max-w-7xl mx-auto w-full pt-6 flex items-center justify-between text-xs font-mono tracking-[0.24em] uppercase text-[#77736D] border-t border-[#090909]/15">
+          <span>ATELIER PONDICHERRY</span>
+          <span>BESPOKE CAPTURE</span>
+        </div>
       </div>
 
       {/* ─── Fullscreen Editorial Artwork Detail Modal (Portal Mounted) ─── */}
@@ -294,36 +447,42 @@ export default function ArtOfIris() {
               <div className="w-full md:w-2/5 flex flex-col items-start gap-6">
                 <div>
                   <span className="text-xs font-mono tracking-[0.24em] uppercase text-[#D8D4CC]/70 block mb-2">
-                    COMPOSITION • {activeComp.label}
+                    EDITION • {activeComp.label}
                   </span>
                   <h3 className="font-display text-4xl sm:text-5xl font-bold uppercase tracking-tight text-white leading-tight">
                     {activeComp.title}
                   </h3>
+                  <p className="text-sm font-sans tracking-wide text-[#D8D4CC]/80 mt-1">
+                    {activeComp.format}
+                  </p>
                 </div>
 
-                <p className="font-sans text-sm text-[#D8D4CC] leading-relaxed">
-                  {activeComp.description}
-                </p>
-
-                <div className="space-y-3 py-4 border-y border-white/15 w-full text-xs font-mono text-white/70">
-                  <div className="flex justify-between">
-                    <span>SPECIFICATION:</span>
-                    <span className="text-white font-bold">{activeComp.dimensions}</span>
+                <div className="w-full space-y-3 border-y border-white/10 py-5 text-xs font-mono tracking-wider">
+                  <div className="flex justify-between text-white/60">
+                    <span>SPECIFICATION</span>
+                    <span className="text-white">{activeComp.dimensions}</span>
                   </div>
-                  <div className="flex justify-between">
-                    <span>BIOMETRIC HARMONY:</span>
-                    <span className="text-white">{activeComp.subtitle.split("•")[0]}</span>
+                  <div className="flex justify-between text-white/60">
+                    <span>SURFACE</span>
+                    <span className="text-white">Museum-Grade Rag / Acrylic</span>
+                  </div>
+                  <div className="flex justify-between text-white/60">
+                    <span>EDITION</span>
+                    <span className="text-white">1 of 1 Biometric Bespoke</span>
                   </div>
                 </div>
 
-                <div className="pt-2 w-full">
-                  <Link
-                    href="/book"
-                    onClick={() => setIsDetailOpen(false)}
-                    className="w-full py-4 bg-white text-black text-xs font-sans font-bold tracking-[0.22em] uppercase hover:bg-neutral-200 transition-colors text-center inline-block"
+                <div className="flex items-center gap-4 w-full">
+                  <button
+                    onClick={() => {
+                      setIsDetailOpen(false);
+                      const el = document.getElementById("booking");
+                      if (el) el.scrollIntoView({ behavior: "smooth" });
+                    }}
+                    className="w-full py-4 text-xs font-sans tracking-[0.22em] uppercase font-bold bg-[#FAFAF8] text-[#090909] hover:bg-white transition-all text-center cursor-pointer"
                   >
-                    RESERVE THIS COMPOSITION →
-                  </Link>
+                    COMMISSION THIS FORMAT
+                  </button>
                 </div>
               </div>
             </div>
