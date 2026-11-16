@@ -39,37 +39,35 @@ export default function BookingInvitation() {
   return (
     <section
       id="inquire"
-      className="relative z-30 w-full min-h-screen py-20 sm:py-28 flex flex-col justify-between overflow-hidden bg-[#020204] text-[#f0f0f2] px-6 sm:px-10 md:px-16 lg:px-24 select-none border-t border-white/5"
+      data-theme="dark"
+      className="relative z-30 w-full min-h-[85vh] py-28 sm:py-36 md:py-44 flex flex-col justify-between overflow-hidden bg-[#080808] text-[#F5F2EC] px-6 sm:px-10 md:px-16 lg:px-24 select-none"
     >
       {/* Top Meta Indicator */}
-      <div className="relative z-10 max-w-6xl mx-auto w-full flex items-center justify-between border-b border-white/10 pb-5">
+      <div className="max-w-7xl mx-auto w-full flex items-center justify-between border-b border-white/10 pb-6">
         <div className="flex items-center gap-2 text-[10px] font-mono tracking-[0.28em] uppercase text-white/50">
           <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
-          <span>05 / BESPOKE APPOINTMENTS</span>
+          <span>05 / YOUR TURN</span>
         </div>
         <span className="text-[10px] font-mono tracking-widest uppercase text-white/40">
-          {SITE_CONFIG.location}
+          PONDICHERRY, INDIA
         </span>
       </div>
 
-      {/* Center Main Conversion Hero Typography */}
-      <div className="relative z-10 max-w-6xl mx-auto w-full my-auto py-16 flex flex-col items-start gap-8">
-        <div className="flex flex-col gap-3">
-          <h2 className="font-display text-5xl sm:text-7xl md:text-8xl lg:text-9xl font-light tracking-[-0.04em] uppercase text-white leading-[0.9]">
-            YOUR TURN.
-          </h2>
-        </div>
+      {/* Center Main Conversion Hero Typography (Visually striking, minimal) */}
+      <div className="max-w-7xl mx-auto w-full my-auto py-16 sm:py-24 flex flex-col items-start gap-8">
+        <h2 className="font-display text-5xl sm:text-7xl md:text-8xl lg:text-9xl font-light tracking-[-0.04em] uppercase text-white leading-[0.88]">
+          YOUR TURN.
+        </h2>
 
-        <p className="max-w-lg font-sans text-xs sm:text-sm text-white/60 leading-relaxed">
-          Book an intimate macro session at our Pondicherry atelier or enquire about
-          upcoming travel pop-up dates. Every piece is strictly unique to your stroma.
+        <p className="max-w-md font-sans text-xs sm:text-sm text-white/60 leading-relaxed">
+          Book an intimate macro session at our White Town atelier or discover our next travelling pop-up salon. Every print is calibrated strictly to your unique biometric stroma.
         </p>
 
-        {/* Primary and Secondary Actions */}
-        <div className="flex flex-wrap items-center gap-4 pt-2">
+        {/* Primary Action Button (White fill, black text) & Secondary Text Link */}
+        <div className="flex flex-wrap items-center gap-6 sm:gap-10 pt-4">
           <Link
             href="/book"
-            className="group inline-flex items-center gap-3 px-8 py-4 bg-white hover:bg-neutral-200 text-black text-xs font-sans font-semibold tracking-[0.24em] uppercase transition-all duration-300"
+            className="group inline-flex items-center gap-3 px-8 py-4 bg-white text-black text-xs font-sans font-semibold tracking-[0.22em] uppercase hover:bg-[#E8E6E1] transition-all duration-300"
           >
             <span>BOOK AN EXPERIENCE</span>
             <ArrowUpRight className="w-4 h-4 text-black transition-transform duration-300 group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
@@ -77,67 +75,19 @@ export default function BookingInvitation() {
 
           <button
             onClick={() => setIsPopupModalOpen(true)}
-            className="px-7 py-4 border border-white/20 hover:border-white bg-black/60 text-xs font-mono tracking-[0.20em] uppercase text-white transition-all duration-300 cursor-pointer"
+            className="group inline-flex items-center gap-2 text-xs font-sans tracking-[0.18em] uppercase text-white/70 hover:text-white transition-colors cursor-pointer"
           >
-            FIND NEXT POP-UP
+            <span>FIND THE NEXT POP-UP</span>
+            <ArrowUpRight className="w-3.5 h-3.5 transition-transform duration-200 group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
           </button>
         </div>
       </div>
 
-      {/* Rebuilt Architectural Luxury Footer */}
-      <footer className="relative z-10 max-w-6xl mx-auto w-full border-t border-white/10 pt-12 pb-8 flex flex-col gap-10">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-8">
-          <Link
-            href="/"
-            className="font-display font-medium text-2xl tracking-[0.34em] uppercase text-white hover:text-white/80 transition-colors"
-          >
-            IRIS<sup className="text-xs ml-0.5 opacity-60">®</sup>
-          </Link>
-
-          <nav className="flex flex-wrap items-center gap-6 sm:gap-10 text-xs font-mono tracking-wider text-white/70">
-            <Link href="/shop" className="hover:text-white transition-colors">
-              COLLECTION
-            </Link>
-            <Link href="/book" className="hover:text-white transition-colors">
-              EXPERIENCE
-            </Link>
-            <Link href="/products" className="hover:text-white transition-colors">
-              FORMATS
-            </Link>
-            <Link href="/my-iris" className="hover:text-white transition-colors">
-              MY IRIS
-            </Link>
-            <Link href="/track-order" className="hover:text-white transition-colors">
-              TRACK ORDER
-            </Link>
-          </nav>
-        </div>
-
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 text-[10px] font-mono tracking-widest text-white/40 pt-4 border-t border-white/5">
-          <span>© 2026 IRIS ATELIER • WHITE TOWN, PONDICHERRY • ALL RIGHTS RESERVED</span>
-          <div className="flex items-center gap-6">
-            <a
-              href={`https://wa.me/${SITE_CONFIG.whatsapp.cleanNumber}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="hover:text-white transition-colors"
-            >
-              WHATSAPP
-            </a>
-            <a
-              href={SITE_CONFIG.social.instagram}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="hover:text-white transition-colors"
-            >
-              INSTAGRAM
-            </a>
-            <span className="hover:text-white transition-colors cursor-pointer">
-              PRIVACY & TERMS
-            </span>
-          </div>
-        </div>
-      </footer>
+      {/* Bottom Sub-text line */}
+      <div className="max-w-7xl mx-auto w-full pt-8 flex items-center justify-between text-[10px] font-mono tracking-[0.26em] uppercase text-white/40 border-t border-white/10">
+        <span>PRIVATE ATELIER APPOINTMENTS</span>
+        <span>STUDIO ADMISSION BY RESERVATION</span>
+      </div>
 
       {/* ─── Pop-Up Location Modal (Portal Mounted) ─── */}
       {isPopupModalOpen && mounted && typeof document !== "undefined" &&
@@ -145,64 +95,75 @@ export default function BookingInvitation() {
           <div
             role="dialog"
             aria-modal="true"
-            className="fixed inset-0 z-[99999] flex items-center justify-center p-6 bg-black/95 backdrop-blur-2xl text-white animate-fadeIn select-none"
+            aria-label="Upcoming Travelling Pop-up Dates"
+            className="fixed inset-0 z-[99999] flex items-center justify-center p-6 bg-black/95 backdrop-blur-2xl text-white select-none animate-fadeIn"
             onClick={() => setIsPopupModalOpen(false)}
           >
-            {/* Safe Fixed Close Button */}
+            {/* Unobstructed Fixed Close Button */}
             <button
               onClick={() => setIsPopupModalOpen(false)}
-              className="fixed top-6 right-6 sm:top-8 sm:right-10 flex items-center gap-2 px-4 py-2.5 border border-white/20 bg-black/90 hover:bg-white hover:text-black text-xs font-mono tracking-widest text-white transition-all duration-300 z-[100000] cursor-pointer shadow-[0_8px_32px_rgba(0,0,0,0.9)]"
-              aria-label="Close modal"
+              aria-label="Close pop-up dialog"
+              className="fixed right-6 sm:right-10 z-[100000] p-3 text-white bg-white/10 hover:bg-white/20 border border-white/20 rounded-none transition-all duration-200 backdrop-blur-md cursor-pointer"
+              style={{ top: "max(1.5rem, env(safe-area-inset-top, 1.5rem))" }}
             >
-              <span>CLOSE [ESC]</span>
-              <X className="w-4 h-4" />
+              <X className="w-5 h-5" />
             </button>
 
+            {/* Modal Body */}
             <div
-              className="relative w-full max-w-md p-6 sm:p-8 bg-[#0a0a0e] border border-white/15 text-left flex flex-col gap-6 shadow-[0_20px_60px_rgba(0,0,0,0.9)]"
+              className="relative max-w-lg w-full bg-[#080808] border border-white/10 p-8 sm:p-10 flex flex-col gap-6"
               onClick={(e) => e.stopPropagation()}
             >
-              <div className="flex items-center gap-2.5 text-xs font-mono tracking-widest uppercase text-white/50 border-b border-white/10 pb-4">
-                <MapPin className="w-4 h-4 text-white" />
-                <span>POP-UP CALENDAR</span>
-              </div>
-
-              <div className="flex flex-col gap-2">
-                <h3 className="font-display text-2xl uppercase text-white font-light">
-                  PONDICHERRY ATELIER
-                </h3>
-                <p className="text-xs font-sans text-white/60 leading-relaxed">
-                  Our permanent creative studio is located in White Town, Pondicherry.
-                  Private appointments are conducted daily.
-                </p>
-              </div>
-
-              <div className="p-4 border border-white/10 bg-white/[0.02] flex flex-col gap-2 font-mono text-xs text-white/60">
-                <div className="flex items-center gap-2 text-white font-medium">
-                  <Calendar className="w-3.5 h-3.5" />
-                  <span>TRAVEL SCHEDULE</span>
-                </div>
-                <span className="text-white/70">
-                  Bengaluru & Mumbai travel atelier dates will be released shortly.
+              <div>
+                <span className="text-[10px] font-mono tracking-[0.28em] uppercase text-white/50 block mb-1">
+                  POP-UP LOCATIONS
                 </span>
+                <h3 className="font-display text-2xl sm:text-3xl font-light uppercase tracking-tight text-white">
+                  POP-UP SALON SCHEDULE
+                </h3>
               </div>
 
-              <a
-                href={`https://wa.me/${SITE_CONFIG.whatsapp.cleanNumber}?text=${encodeURIComponent(
-                  "Hello IRIS Studio, please add me to your priority list for upcoming Pop-up announcements."
-                )}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center justify-center gap-2 py-3.5 bg-white text-black hover:bg-neutral-200 text-xs font-mono font-semibold uppercase tracking-wider transition-all"
-              >
-                <span>JOIN PRIORITY LIST ON WHATSAPP</span>
-                <ArrowUpRight className="w-4 h-4" />
-              </a>
+              <div className="space-y-4">
+                <div className="p-4 border border-white/10 bg-white/5 flex flex-col gap-1">
+                  <div className="flex items-center justify-between text-xs font-mono text-white">
+                    <span className="flex items-center gap-1.5">
+                      <MapPin className="w-3.5 h-3.5 text-white/70" />
+                      White Town Studio, Pondicherry
+                    </span>
+                    <span className="text-white/60">Permanent</span>
+                  </div>
+                  <span className="text-[11px] text-white/50 pl-5">
+                    Open Tuesday through Sunday by appointment
+                  </span>
+                </div>
+
+                <div className="p-4 border border-white/10 bg-white/5 flex flex-col gap-1">
+                  <div className="flex items-center justify-between text-xs font-mono text-white">
+                    <span className="flex items-center gap-1.5">
+                      <Calendar className="w-3.5 h-3.5 text-white/70" />
+                      Bangalore Art Residency
+                    </span>
+                    <span className="text-white/60">Upcoming</span>
+                  </div>
+                  <span className="text-[11px] text-white/50 pl-5">
+                    Dates announced soon • Priority waitlist open
+                  </span>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-4 pt-2">
+                <Link
+                  href="/book"
+                  onClick={() => setIsPopupModalOpen(false)}
+                  className="w-full py-3.5 bg-white text-black text-xs font-sans font-semibold tracking-[0.22em] uppercase hover:bg-neutral-200 transition-colors text-center"
+                >
+                  RESERVE ATELIER SESSION
+                </Link>
+              </div>
             </div>
           </div>,
           document.body
-        )
-      }
+        )}
     </section>
   );
 }

@@ -131,3 +131,12 @@ export const PRODUCTS_CATALOG: ProductItem[] = [
     personalization: "Individual name and birthdate calligraphy on lower archival mat border.",
   },
 ];
+
+// Curated 5 physical product formats for the luxury editorial homepage train
+export const HOMEPAGE_COLLECTION: ProductItem[] = [
+  PRODUCTS_CATALOG.find((p) => p.id === "prod-fine-art")!,
+  PRODUCTS_CATALOG.find((p) => p.id === "prod-framed")!,
+  PRODUCTS_CATALOG.find((p) => p.id === "prod-acrylic-block")!,
+  PRODUCTS_CATALOG.find((p) => p.id === "prod-light-box")!,
+  PRODUCTS_CATALOG.find((p) => p.id === "prod-jewelry")!,
+];

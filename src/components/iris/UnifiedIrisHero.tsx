@@ -9,7 +9,6 @@ import {
   irisLabFragmentShader,
 } from "../iris-lab/shaders.glsl";
 import HeroUI from "./HeroUI";
-import IrisGallery from "../home/IrisGallery";
 
 if (typeof window !== "undefined") {
   gsap.registerPlugin(ScrollTrigger);
@@ -150,7 +149,6 @@ export default function UnifiedIrisHero({
   const containerRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const heroTextRef = useRef<HTMLDivElement>(null);
-  const galleryOverlayRef = useRef<HTMLDivElement>(null);
   const debugHudRef = useRef<HTMLDivElement>(null);
   const debugReticleRef = useRef<HTMLDivElement>(null);
   const debugEnabledRef = useRef(false);
@@ -960,7 +958,6 @@ export default function UnifiedIrisHero({
       macroUniforms.uMasterOpacity.value = 1.0;
 
       if (heroTextRef.current) gsap.set(heroTextRef.current, { opacity: 0, y: 16 });
-      if (galleryOverlayRef.current) gsap.set(galleryOverlayRef.current, { opacity: 0 });
 
       renderer.render(scene, camera);
 
@@ -982,7 +979,7 @@ export default function UnifiedIrisHero({
         pin: true,
         pinSpacing: true,
         start: "top top",
-        end: "+=260%", // Unified 260vh travel for the entire journey through Gallery
+        end: "+=200%", // 200vh travel for macro pullback and stroma layer journey
         scrub: 0.6,   // Liquid-smooth 0.6s catchup
         invalidateOnRefresh: true,
         refreshPriority: 10,
@@ -995,15 +992,6 @@ export default function UnifiedIrisHero({
           // Reverse scroll restoration: Restore hero typography at top
           if (self.progress <= 0.02 && introTimeline && introTimeline.progress() >= 0.5) {
             if (heroTextRef.current) gsap.set(heroTextRef.current, { opacity: 1, y: 0 });
-          }
-
-          // Gallery overlay pointer interactivity toggle
-          if (galleryOverlayRef.current) {
-            if (self.progress >= 0.88) {
-              galleryOverlayRef.current.style.pointerEvents = "auto";
-            } else {
-              galleryOverlayRef.current.style.pointerEvents = "none";
-            }
           }
         },
       },
@@ -1026,23 +1014,6 @@ export default function UnifiedIrisHero({
         { opacity: 1, y: 0 },
         { opacity: 0, y: -35, duration: 0.12, ease: "power1.inOut", immediateRender: false },
         0.00
-      );
-    }
-
-    // ── Phase 6: Seamless Gallery Emergence through Atmosphere (0.82 – 0.96) ──
-    // Zero sliding rectangular box, zero canvas clipping, zero seam!
-    if (galleryOverlayRef.current) {
-      scrollTimeline.fromTo(
-        galleryOverlayRef.current,
-        { opacity: 0, scale: 0.97 },
-        {
-          opacity: 1,
-          scale: 1.0,
-          duration: 0.16,
-          ease: "power2.inOut",
-          immediateRender: false,
-        },
-        0.82
       );
     }
 
@@ -1347,51 +1318,43 @@ export default function UnifiedIrisHero({
         <HeroUI />
       </div>
 
-      {/* Phase 6: Embedded Curated Gallery Exhibition (Emerges through atmosphere) */}
-      <div
-        ref={galleryOverlayRef}
-        className="pointer-events-none absolute inset-0 z-20 opacity-0 will-change-[opacity,transform]"
-      >
-        <IrisGallery isEmbedded={true} />
-      </div>
-
       {/* Pointer Debug Telemetry Overlay (?irisDebug=1) */}
       <div
         ref={debugHudRef}
         id="iris-debug-hud"
-        className="fixed bottom-6 left-6 z-50 bg-[#07090c]/90 border border-[#7ec8e3]/40 p-4 font-mono text-[11px] text-[#e0e8f0] shadow-[0_8px_32px_rgba(0,0,0,0.8)] backdrop-blur-md max-w-xs pointer-events-none hidden"
+        className="fixed bottom-6 left-6 z-50 bg-[#07090c]/90 border border-white/20 p-4 font-mono text-[11px] text-[#e0e8f0] shadow-[0_8px_32px_rgba(0,0,0,0.8)] backdrop-blur-md max-w-xs pointer-events-none hidden"
       >
-        <div className="flex items-center justify-between border-b border-[#202838] pb-1.5 mb-2 text-[#7ec8e3] font-bold tracking-wider">
+        <div className="flex items-center justify-between border-b border-white/10 pb-1.5 mb-2 text-white font-bold tracking-wider">
           <span>IRIS POINTER HUD</span>
-          <span className="text-[9px] uppercase px-1.5 py-0.5 rounded bg-[#7ec8e3]/20">Active</span>
+          <span className="text-[9px] uppercase px-1.5 py-0.5 rounded bg-white/20">Active</span>
         </div>
         <div className="space-y-1">
           <div className="flex justify-between">
-            <span className="text-[#8892a4]">Screen Pos:</span>
+            <span className="text-white/60">Screen Pos:</span>
             <span id="dbg-screen">0px, 0px</span>
           </div>
           <div className="flex justify-between">
-            <span className="text-[#8892a4]">NDC:</span>
+            <span className="text-white/60">NDC:</span>
             <span id="dbg-ndc">0, 0</span>
           </div>
           <div className="flex justify-between">
-            <span className="text-[#8892a4]">Resolved UV:</span>
-            <span id="dbg-uv" className="text-[#7ec8e3] font-semibold">0.5, 0.5</span>
+            <span className="text-white/60">Resolved UV:</span>
+            <span id="dbg-uv" className="text-white font-semibold">0.5, 0.5</span>
           </div>
           <div className="flex justify-between">
-            <span className="text-[#8892a4]">Hit Object:</span>
+            <span className="text-white/60">Hit Object:</span>
             <span id="dbg-hit" className="truncate max-w-[140px] text-right">none</span>
           </div>
           <div className="flex justify-between">
-            <span className="text-[#8892a4]">Hover Intensity:</span>
+            <span className="text-white/60">Hover Intensity:</span>
             <span id="dbg-hover">0</span>
           </div>
           <div className="flex justify-between">
-            <span className="text-[#8892a4]">Reveal Origin:</span>
-            <span id="dbg-origin" className="text-[#e09848]">0.5, 0.5</span>
+            <span className="text-white/60">Reveal Origin:</span>
+            <span id="dbg-origin" className="text-white/80">0.5, 0.5</span>
           </div>
           <div className="flex justify-between">
-            <span className="text-[#8892a4]">Scroll Travel:</span>
+            <span className="text-white/60">Scroll Travel:</span>
             <span id="dbg-scroll">0.0%</span>
           </div>
         </div>
@@ -1404,11 +1367,11 @@ export default function UnifiedIrisHero({
         style={{ left: "-100px", top: "-100px" }}
       >
         <div className="relative w-8 h-8 flex items-center justify-center">
-          <span className="absolute w-6 h-6 rounded-full border border-[#7ec8e3] animate-ping opacity-30" />
-          <span className="w-4 h-4 rounded-full border border-[#7ec8e3] bg-[#7ec8e3]/20 flex items-center justify-center">
+          <span className="absolute w-6 h-6 rounded-full border border-white animate-ping opacity-30" />
+          <span className="w-4 h-4 rounded-full border border-white bg-white/20 flex items-center justify-center">
             <span className="w-1 h-1 rounded-full bg-white" />
           </span>
-          <span id="dbg-reticle-label" className="absolute -top-4 left-6 text-[9px] font-mono whitespace-nowrap bg-[#05070a]/90 px-1 py-0.5 rounded border border-[#7ec8e3]/30 text-[#7ec8e3]">
+          <span id="dbg-reticle-label" className="absolute -top-4 left-6 text-[9px] font-mono whitespace-nowrap bg-black/90 px-1 py-0.5 rounded border border-white/30 text-white">
             UV: (0.50, 0.50)
           </span>
         </div>

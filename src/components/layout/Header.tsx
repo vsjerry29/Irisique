@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { ArrowUpRight, ShoppingBag } from "lucide-react";
 import MenuOverlay from "./MenuOverlay";
@@ -13,12 +13,19 @@ interface HeaderProps {
 export default function Header({ onReplayIntro }: HeaderProps) {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isHeroInView, setIsHeroInView] = useState(true);
+  const [isLightSection, setIsLightSection] = useState(false);
   const { totalCount, setIsCartOpen } = useCart();
 
-  React.useEffect(() => {
+  useEffect(() => {
     const handleScroll = () => {
       setIsHeroInView(window.scrollY < 450);
+
+      // Check whether current top of viewport is over a light section
+      const el = document.elementFromPoint(window.innerWidth / 2, 50);
+      const lightParent = el?.closest('[data-theme="light"]');
+      setIsLightSection(!!lightParent);
     };
+
     window.addEventListener("scroll", handleScroll, { passive: true });
     handleScroll();
     return () => window.removeEventListener("scroll", handleScroll);
@@ -26,7 +33,7 @@ export default function Header({ onReplayIntro }: HeaderProps) {
 
   return (
     <>
-      <header className="fixed top-0 left-0 right-0 z-40 flex items-center justify-between p-6 sm:p-8 md:px-12 md:py-6 pointer-events-none transition-all duration-300">
+      <header className="fixed top-0 left-0 right-0 z-40 flex items-center justify-between p-6 sm:p-8 md:px-12 md:py-6 pointer-events-none transition-colors duration-300">
         {/* Brand Mark (Top Left) */}
         <div className="pointer-events-auto">
           <Link
@@ -34,7 +41,13 @@ export default function Header({ onReplayIntro }: HeaderProps) {
             className="group flex items-center gap-2 select-none"
             title="IRIS — Home"
           >
-            <span className="font-display font-medium text-xl sm:text-2xl tracking-[0.34em] text-[#f5f5f7] uppercase transition-colors duration-300 group-hover:text-white">
+            <span
+              className={`font-display font-medium text-xl sm:text-2xl tracking-[0.34em] uppercase transition-colors duration-300 ${
+                isLightSection
+                  ? "text-[#080808] group-hover:text-black"
+                  : "text-[#f5f5f7] group-hover:text-white"
+              }`}
+            >
               IRIS<sup className="text-xs ml-0.5 tracking-normal opacity-70">®</sup>
             </span>
           </Link>
@@ -46,11 +59,17 @@ export default function Header({ onReplayIntro }: HeaderProps) {
           {totalCount > 0 && (
             <button
               onClick={() => setIsCartOpen(true)}
-              className="relative p-2 text-[#b0b0c0] hover:text-white transition-colors"
+              className={`relative p-2 transition-colors ${
+                isLightSection ? "text-[#080808]" : "text-white"
+              }`}
               aria-label={`Cart with ${totalCount} items`}
             >
-              <ShoppingBag className="w-4 h-4 text-white" />
-              <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-white text-black text-[9px] font-mono font-bold flex items-center justify-center">
+              <ShoppingBag className="w-4 h-4" />
+              <span
+                className={`absolute -top-1 -right-1 w-4 h-4 rounded-full text-[9px] font-mono font-bold flex items-center justify-center ${
+                  isLightSection ? "bg-[#080808] text-white" : "bg-white text-black"
+                }`}
+              >
                 {totalCount}
               </span>
             </button>
@@ -70,15 +89,23 @@ export default function Header({ onReplayIntro }: HeaderProps) {
           {/* MENU Button */}
           <button
             onClick={() => setIsMenuOpen(true)}
-            className="px-3.5 py-2 sm:px-4 sm:py-2 border border-white/20 hover:border-white bg-black/80 backdrop-blur-md text-[10px] sm:text-[11px] font-mono tracking-[0.24em] uppercase text-[#cfcfd8] hover:text-white transition-all duration-300 cursor-pointer"
+            className={`px-3.5 py-2 sm:px-4 sm:py-2 border text-[10px] sm:text-[11px] font-mono tracking-[0.24em] uppercase transition-all duration-300 cursor-pointer backdrop-blur-md ${
+              isLightSection
+                ? "border-[#080808]/20 hover:border-[#080808] bg-[#F5F2EC]/80 text-[#080808] hover:text-black"
+                : "border-white/20 hover:border-white bg-black/80 text-[#cfcfd8] hover:text-white"
+            }`}
           >
             MENU
           </button>
 
-          {/* BOOK Button */}
+          {/* BOOK Button (Confidently rectangular, high contrast) */}
           <Link
             href="/book"
-            className="inline-flex items-center gap-2 px-4 py-2 sm:px-5 sm:py-2 border border-white/30 bg-white/5 hover:bg-white hover:text-black backdrop-blur-md text-[10px] sm:text-[11px] font-sans tracking-[0.22em] uppercase font-semibold text-white transition-all duration-300"
+            className={`inline-flex items-center gap-2 px-4 py-2 sm:px-5 sm:py-2 text-[10px] sm:text-[11px] font-sans tracking-[0.22em] uppercase font-semibold transition-all duration-300 ${
+              isLightSection
+                ? "bg-[#080808] text-white hover:bg-neutral-800"
+                : "bg-white text-black hover:bg-neutral-200"
+            }`}
           >
             <span>BOOK</span>
             <ArrowUpRight className="w-3.5 h-3.5" />

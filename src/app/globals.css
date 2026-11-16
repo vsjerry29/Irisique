@@ -3,8 +3,14 @@
 @tailwind utilities;
 
 :root {
-  --background: #030304;
-  --foreground: #f0f0f2;
+  --background: #080808;
+  --foreground: #f5f2ec;
+  --ink-black: #080808;
+  --warm-ivory: #F5F2EC;
+  --soft-stone: #E8E6E1;
+  --warm-grey: #77736D;
+  --pure-white: #FFFFFF;
+  --near-black: #151515;
 }
 
 * {
@@ -15,8 +21,8 @@
 
 html,
 body {
-  background-color: #030304;
-  color: #f0f0f2;
+  background-color: #080808;
+  color: #f5f2ec;
   font-family: var(--font-sans), -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   width: 100%;
   min-height: 100%;
@@ -29,18 +35,18 @@ body {
   width: 5px;
 }
 ::-webkit-scrollbar-track {
-  background: #030304;
+  background: #080808;
 }
 ::-webkit-scrollbar-thumb {
-  background: #1c1c22;
+  background: #262626;
   border-radius: 2px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #2a2a34;
+  background: #3a3a3a;
 }
 
-/* Focus styles */
+/* Accessible high-contrast monochrome focus indicator */
 :focus-visible {
-  outline: 1px solid rgba(126, 200, 227, 0.6);
-  outline-offset: 4px;
+  outline: 2px solid currentColor;
+  outline-offset: 3px;
 }

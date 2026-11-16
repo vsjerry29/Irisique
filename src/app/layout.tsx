@@ -54,7 +54,7 @@ export default function RootLayout({
           type="image/webp"
         />
       </head>
-      <body className="bg-[#030405] text-[#f0f0f2] antialiased min-h-screen selection:bg-[#7ec8e3]/30 selection:text-white">
+      <body className="bg-[#080808] text-[#f5f2ec] antialiased min-h-screen selection:bg-neutral-800 selection:text-white">
         <CartProvider>
           {children}
           <CartDrawer />

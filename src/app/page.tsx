@@ -1,14 +1,15 @@
 "use client";
 
-import React, { useRef, useEffect } from "react";
-import dynamic from "next/dynamic";
+import React, { useEffect } from "react";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import Header from "@/components/layout/Header";
 import UnifiedIrisHero from "@/components/iris/UnifiedIrisHero";
-import CoupleExperience from "@/components/home/CoupleExperience";
+import ArtOfIris from "@/components/home/ArtOfIris";
 import ProductTransformation from "@/components/home/ProductTransformation";
+import ExperienceSection from "@/components/home/ExperienceSection";
 import BookingInvitation from "@/components/home/BookingInvitation";
+import Footer from "@/components/layout/Footer";
 import MotionDebugPanel from "@/components/home/MotionDebugPanel";
 
 if (typeof window !== "undefined") {
@@ -17,7 +18,6 @@ if (typeof window !== "undefined") {
 }
 
 export default function HomePage() {
-
   useEffect(() => {
     if (typeof window !== "undefined") {
       if ("scrollRestoration" in window.history) {
@@ -54,21 +54,27 @@ export default function HomePage() {
   };
 
   return (
-    <main className="relative bg-[#020204] text-[#f0f0f2] w-full selection:bg-white/20 selection:text-white">
-      {/* ─── Global atelier navigation header ─── */}
+    <main className="relative bg-[#080808] text-[#F5F2EC] w-full selection:bg-neutral-800 selection:text-white">
+      {/* ─── Global Atelier Adaptive Header ─── */}
       <Header onReplayIntro={handleReplayIntro} />
 
-      {/* ─── EXPERIENCE 01: Unified Iris Continuum (Macro-to-Layer WebGL Journey through Curated Gallery) ─── */}
+      {/* ─── 01: CINEMATIC DISCOVERY (Unified WebGL Macro & Stroma Travel) ─── */}
       <UnifiedIrisHero />
 
-      {/* ─── EXPERIENCE 02: Couple Composition (Two Become One) ─── */}
-      <CoupleExperience />
+      {/* ─── 02: THE ART OF IRIS (Curated Museum Compositions: Solo / Couple / Family) ─── */}
+      <ArtOfIris />
 
-      {/* ─── EXPERIENCE 05: Artwork Transformation (Made to be Kept) ─── */}
+      {/* ─── 03: THE COLLECTION (Continuous Product Train on Warm Neutral Surfaces) ─── */}
       <ProductTransformation />
 
-      {/* ─── EXPERIENCE 06: The Final Invitation & Atelier Footer (Your Turn) ─── */}
+      {/* ─── 04: THE EXPERIENCE (Bespoke Atelier Process: Capture • Create • Keep) ─── */}
+      <ExperienceSection />
+
+      {/* ─── 05: YOUR TURN (Striking Near-Black Atelier Appointment Invitation) ─── */}
       <BookingInvitation />
+
+      {/* ─── 06: MINIMAL FOOTER (Warm Ivory Art Publication Index & Wordmark) ─── */}
+      <Footer />
 
       {/* ─── Motion Architecture Telemetry HUD (?motionDebug=1) ─── */}
       <MotionDebugPanel />
