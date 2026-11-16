@@ -686,7 +686,7 @@ export default function TransitionLabStage({ onProgressChange }: TransitionLabSt
       <section
         ref={containerRef}
         data-section="transition-lab-stage"
-        className="relative z-20 w-full min-h-screen overflow-visible select-none"
+        className="relative z-20 w-full h-screen overflow-hidden select-none"
       >
         {/* Layer 0: Darkroom Background (#090909) */}
         <div className="absolute inset-0 bg-[#090909] z-0 pointer-events-none" />
@@ -695,7 +695,7 @@ export default function TransitionLabStage({ onProgressChange }: TransitionLabSt
             Clipped by Asymmetric Photographic Seam during transition, unclipped (none) at p >= 0.90 */}
         <div
           ref={galleryStageRef}
-          className="relative z-10 w-full min-h-screen pointer-events-auto flex flex-col justify-between"
+          className="absolute inset-0 w-full h-full overflow-hidden pointer-events-auto flex flex-col justify-between z-10"
           style={{ clipPath: "url(#photographicSeamClip)" }}
         >
           <ArtOfIris
@@ -735,7 +735,7 @@ export default function TransitionLabStage({ onProgressChange }: TransitionLabSt
             Renders on z-20 above the background & seam, so pupil is NEVER obscured or turned white */}
         <canvas
           ref={canvasRef}
-          className="absolute inset-0 w-full h-screen block z-20 pointer-events-auto"
+          className="absolute inset-0 w-full h-full block z-20 pointer-events-auto"
         />
 
         {/* Layer 4: Hero Typography Overlay (Phase 1 & 2: Glides out on scroll, restored on reverse) */}

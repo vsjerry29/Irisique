@@ -613,8 +613,8 @@ export default function UnifiedIrisHero({
       uResolution: { value: new THREE.Vector2(width * dpr, height * dpr) },
       uScrollProgress: { value: 0 },
       uScrollRotation: { value: 0 },
-      uIrisOffset: { value: new THREE.Vector2(0, 0) },
-      uIrisScale: { value: 0.82 }, // Balanced luxury framing: uncropped circular silhouette with 10% breathing space
+      uIrisOffset: { value: new THREE.Vector2(isMobile ? 0.0 : 0.25, 0.0) },
+      uIrisScale: { value: isMobile ? 0.82 : 0.78 }, // Balanced two-part editorial framing: complete circular iris on right
       uReducedMotion: { value: prefersReducedMotion ? 1.0 : 0.0 },
       uClickProgress: { value: 0.0 },
       uClickOrigin: { value: new THREE.Vector2(0.5, 0.5) },
@@ -1043,9 +1043,11 @@ export default function UnifiedIrisHero({
       macroUniforms.uIntroProgress.value = 0.0;
       macroUniforms.uIntroZoom.value = 5.2;
       macroUniforms.uCameraTarget.value.set(-0.16, 0.20);
+      const restingOffsetX = isMobile ? 0.0 : 0.25;
+      macroUniforms.uIrisOffset.value.set(restingOffsetX, 0.0);
+      macroUniforms.uIrisScale.value = isMobile ? 0.82 : 0.78;
       macroUniforms.uScrollProgress.value = 0.0;
       macroUniforms.uScrollRotation.value = 0.0;
-      macroUniforms.uIrisScale.value = 0.82;
       macroUniforms.uMasterOpacity.value = 1.0;
 
       if (heroTextRef.current) gsap.set(heroTextRef.current, { opacity: 0, y: 16 });
@@ -1113,6 +1115,23 @@ export default function UnifiedIrisHero({
       const mobile = isMobile;
       const camCurve = mobile ? camCurveMobile : camCurveDesktop;
       const targetCurve = mobile ? targetCurveMobile : targetCurveDesktop;
+
+      // ── HORIZONTAL POSITIONING: TWO-PART COMPOSITION (RESTING ON RIGHT -> CENTERING FOR IMMERSION) ──
+      const restingOffsetX = mobile ? 0.0 : 0.25;
+      let currentOffsetX = restingOffsetX;
+      if (p <= 0.35) {
+        // Phase B: Iris stays at resting position on the right while rotating
+        currentOffsetX = restingOffsetX;
+      } else if (p <= 0.55) {
+        // Phase C: Smoothly glides to center as camera enters stroma
+        const t = (p - 0.35) / 0.20;
+        const ease = t * t * (3.0 - 2.0 * t);
+        currentOffsetX = THREE.MathUtils.lerp(restingOffsetX, 0.0, ease);
+      } else {
+        currentOffsetX = 0.0;
+      }
+      macroUniforms.uIrisOffset.value.set(currentOffsetX, 0.0);
+      masterLayerGroup.position.x = currentOffsetX * 5.01;
 
       // ── ROTATION SEQUENCE: ROTATION BEFORE IMMERSION ──
       // Phase B (0.00 <= p <= 0.35): Smooth clockwise rotation across ~125 deg while iris remains fully circular
@@ -1473,7 +1492,7 @@ export default function UnifiedIrisHero({
       <section
         ref={containerRef}
         data-section="unified-iris"
-        className={`relative z-20 w-full min-h-screen overflow-visible select-none ${className}`}
+        className={`relative z-20 w-full h-screen overflow-hidden select-none ${className}`}
       >
         {/* Layer 0: Darkroom Background (#090909) */}
         <div className="absolute inset-0 bg-[#090909] z-0 pointer-events-none" />
@@ -1482,7 +1501,7 @@ export default function UnifiedIrisHero({
             Clipped by Asymmetric Photographic Seam during transition, unclipped (none) at p >= 0.90 */}
         <div
           ref={exposureOverlayRef}
-          className="relative z-10 w-full min-h-screen pointer-events-auto flex flex-col justify-between"
+          className="absolute inset-0 w-full h-full overflow-hidden pointer-events-auto flex flex-col justify-between z-10"
           style={{ clipPath: "url(#photographicSeamClip)" }}
         >
           <ArtOfIris
@@ -1522,7 +1541,7 @@ export default function UnifiedIrisHero({
             Renders on z-20 above the background & seam, so pupil is NEVER obscured or turned white */}
         <canvas
           ref={canvasRef}
-          className="absolute inset-0 w-full h-screen block z-20 pointer-events-auto"
+          className="absolute inset-0 w-full h-full block z-20 pointer-events-auto"
         />
 
         {/* Layer 4: Hero Typography Overlay (Phase 1 & 2: Glides out on scroll, restored on reverse) */}
