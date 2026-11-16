@@ -3,13 +3,16 @@
 @tailwind utilities;
 
 :root {
-  --background: #090909;
-  --foreground: #f4f1ea;
-  --black: #090909;
-  --paper: #F4F1EA;
-  --white: #FAFAF8;
-  --stone: #D8D4CC;
-  --neutral-grey: #77736D;
+  --primary-black: #090909;
+  --secondary-black: #171717;
+  --warm-ivory: #F4F1EA;
+  --off-white: #FAFAF8;
+  --soft-stone: #D8D4CC;
+  --neutral-grey: #706D68;
+  --pure-white: #FFFFFF;
+
+  --background: var(--primary-black);
+  --foreground: var(--warm-ivory);
 }
 
 * {
@@ -21,7 +24,7 @@
 html,
 body {
   background-color: #090909;
-  color: #f4f1ea;
+  color: #FAFAF8;
   font-family: var(--font-sans), -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   width: 100%;
   min-height: 100%;
@@ -48,4 +51,13 @@ body {
 :focus-visible {
   outline: 2px solid currentColor;
   outline-offset: 3px;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.animate-fadeIn {
+  animation: fadeIn 0.3s ease-out forwards;
 }

@@ -7,6 +7,7 @@ import Link from "next/link";
 import { ArrowUpRight, X, Check } from "lucide-react";
 import { HOMEPAGE_COLLECTION, ProductItem } from "@/lib/products";
 import { useCart } from "@/lib/cart";
+import OpticalTrace from "@/components/ui/OpticalTrace";
 
 export default function ProductTransformation() {
   const [selectedProduct, setSelectedProduct] = useState<ProductItem | null>(null);
@@ -187,6 +188,10 @@ export default function ProductTransformation() {
       className="relative z-30 w-full py-24 sm:py-32 md:py-44 overflow-hidden bg-[#F4F1EA] text-[#090909] select-none border-t border-[#090909]/15"
     >
       <div id="editions" className="sr-only" />
+      {/* Subtle Optical Trace Motif along Section Transition */}
+      <div className="absolute top-0 left-12 w-96 h-24 opacity-35 hidden md:block">
+        <OpticalTrace theme="light" variant="collection" />
+      </div>
       {/* ─── Two Halves-Style Asymmetrical Section Header ─── */}
       <div className="max-w-7xl mx-auto w-full px-6 sm:px-10 md:px-16 lg:px-24 flex flex-col lg:flex-row lg:items-end justify-between gap-8 mb-16 sm:mb-24">
         <div className="space-y-4">

@@ -2,16 +2,17 @@
 
 import React, { useState, useEffect } from "react";
 import Header from "@/components/layout/Header";
+import Footer from "@/components/layout/Footer";
 import { Order, OrderStatus } from "@/lib/types";
-import { Search, CheckCircle2, Clock, Package, Truck, Home, AlertCircle } from "lucide-react";
+import { ArrowUpRight, Check, Search, AlertCircle } from "lucide-react";
+import OpticalTrace from "@/components/ui/OpticalTrace";
 
-const STATUS_STEPS: OrderStatus[] = [
+const STATUS_STEPS: string[] = [
   "Request received",
   "Confirmed",
-  "Artwork processing",
-  "Printing",
-  "Ready for dispatch",
-  "Shipped",
+  "Artwork preparation",
+  "Production",
+  "Dispatched",
   "Delivered",
 ];
 
@@ -21,7 +22,6 @@ export default function TrackOrderPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Check URL param ?id=IRIS-XXXX on mount
   useEffect(() => {
     if (typeof window !== "undefined") {
       const params = new URLSearchParams(window.location.search);
@@ -58,91 +58,84 @@ export default function TrackOrderPage() {
     fetchOrder(searchId);
   };
 
-  const getCurrentStepIndex = (currentStatus: OrderStatus) => {
-    const idx = STATUS_STEPS.indexOf(currentStatus);
+  const getCurrentStepIndex = (currentStatus: string) => {
+    const idx = STATUS_STEPS.findIndex(
+      (s) => s.toLowerCase() === (currentStatus || "").toLowerCase()
+    );
     return idx === -1 ? 0 : idx;
   };
 
   return (
-    <main className="relative bg-[#030405] text-[#f0f0f2] min-h-screen selection:bg-[#7ec8e3]/30">
+    <main className="relative bg-[#F4F1EA] text-[#090909] min-h-screen selection:bg-[#090909] selection:text-[#FAFAF8]">
       <Header />
 
-      <section className="pt-32 pb-20 px-6 sm:px-12 md:px-16 max-w-4xl mx-auto">
-        <div className="flex flex-col gap-3 border-b border-[#181824] pb-8 mb-10 text-center sm:text-left">
-          <div className="flex items-center justify-center sm:justify-start gap-2.5 text-[10px] font-mono tracking-[0.30em] uppercase text-[#7ec8e3]">
-            <span className="w-1.5 h-1.5 rounded-full bg-[#7ec8e3] animate-pulse" />
-            <span>PRODUCTION DISPATCH PIPELINE</span>
+      <section className="pt-32 pb-24 sm:pt-40 sm:pb-32 px-6 sm:px-12 md:px-16 max-w-5xl mx-auto">
+        {/* ─── Header ─── */}
+        <div className="flex flex-col gap-4 border-b border-[#090909]/15 pb-10">
+          <div className="flex items-center gap-3 text-xs font-mono tracking-[0.26em] text-[#706D68] uppercase">
+            <span className="w-2 h-2 rounded-full bg-[#090909]" />
+            <span>ATELIER DISPATCH</span>
           </div>
-          <h1 className="font-display text-4xl sm:text-6xl font-light uppercase text-white">
-            TRACK ATELIER ORDER.
+          <h1 className="font-display text-5xl sm:text-7xl font-bold uppercase tracking-[-0.04em] text-[#090909] leading-[0.88]">
+            TRACK ORDER.
           </h1>
-          <p className="text-xs sm:text-sm font-sans text-[#8e8e9c] leading-relaxed">
-            Enter your order reference code (e.g. <span className="font-mono text-white">IRIS-7402</span> or <span className="font-mono text-white">IRIS-8821</span>) to inspect real-time calibration and dispatch status.
+          <p className="max-w-md font-sans text-sm sm:text-base text-[#706D68] leading-relaxed">
+            Enter your atelier reference code (e.g. <span className="font-mono text-[#090909] font-bold">IRIS-7402</span>) to view real-time production status.
           </p>
         </div>
 
-        {/* Search Bar */}
-        <form onSubmit={handleSearch} className="flex flex-col sm:flex-row gap-3 mb-10">
-          <div className="relative flex-1">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-[#7ec8e3]" />
-            <input
-              type="text"
-              placeholder="e.g. IRIS-7402"
-              value={searchId}
-              onChange={(e) => setSearchId(e.target.value)}
-              className="w-full pl-11 pr-4 py-3.5 border border-[#222232] bg-[#07070c] text-white text-xs font-mono uppercase tracking-wider focus:outline-none focus:border-[#7ec8e3]"
-            />
-          </div>
+        {/* ─── Search Input Form ─── */}
+        <form onSubmit={handleSearch} className="my-10 flex flex-col sm:flex-row gap-4">
+          <input
+            type="text"
+            required
+            placeholder="Enter Order Reference (e.g. IRIS-7402)"
+            value={searchId}
+            onChange={(e) => setSearchId(e.target.value)}
+            className="flex-1 px-5 py-4 bg-transparent border-b-2 border-[#090909]/20 focus:border-[#090909] outline-none text-base font-mono uppercase text-[#090909] placeholder:text-[#706D68]/50"
+          />
           <button
             type="submit"
             disabled={loading}
-            className="px-8 py-3.5 bg-[#7ec8e3] hover:bg-[#68bcdb] text-[#030304] text-xs font-sans font-semibold tracking-[0.20em] uppercase transition-all disabled:opacity-50"
+            className="px-8 py-4 bg-[#090909] text-[#FAFAF8] text-xs font-sans font-bold tracking-[0.22em] uppercase hover:bg-[#262626] transition-all flex items-center justify-center gap-2 cursor-pointer"
           >
-            {loading ? "SEARCHING..." : "INSPECT STATUS"}
+            <span>{loading ? "SEARCHING..." : "TRACK STATUS"}</span>
+            <Search className="w-4 h-4" />
           </button>
         </form>
 
         {error && (
-          <div className="p-4 border border-[#e05848]/60 bg-[#e05848]/10 text-xs font-mono text-[#fca5a5] flex items-center gap-3 mb-8">
-            <AlertCircle className="w-4 h-4 shrink-0" />
-            <span>{error}</span>
+          <div className="p-4 bg-red-50 border border-red-200 text-red-700 text-xs font-mono mb-8">
+            {error}
           </div>
         )}
 
-        {/* Order Details & Timeline */}
+        {/* ─── Order Results with Optical Trace Progress ─── */}
         {order && (
-          <div className="p-6 sm:p-10 border border-[#1e1e2c] bg-[#08080e] flex flex-col gap-8 animate-fadeIn">
-            {/* Order Meta Header */}
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-[#181824] pb-6">
-              <div className="flex flex-col gap-1">
-                <span className="font-mono text-[10px] tracking-widest uppercase text-[#7ec8e3]">
-                  VERIFIED ORDER RECORD
+          <div className="bg-[#FAFAF8] border border-[#090909]/15 p-8 sm:p-12 space-y-10 animate-fadeIn">
+            {/* Top Order Details */}
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-6 pb-6 border-b border-[#090909]/15">
+              <div>
+                <span className="text-xs font-mono uppercase tracking-widest text-[#706D68] block">
+                  ORDER REFERENCE
                 </span>
-                <h3 className="font-display text-2xl uppercase text-white">
+                <span className="font-display text-3xl font-bold uppercase text-[#090909]">
                   {order.id}
-                </h3>
-                <span className="font-mono text-xs text-[#777788]">
-                  Created: {new Date(order.createdAt).toLocaleDateString()}
                 </span>
               </div>
-
-              <div className="flex flex-col sm:items-end gap-1">
-                <span className="px-3 py-1 border border-[#7ec8e3]/40 bg-[#7ec8e3]/10 text-[#7ec8e3] text-xs font-mono uppercase tracking-wider">
-                  {order.status}
-                </span>
-                <span className="font-mono text-xs text-[#9a9aa8]">
-                  Customer: {order.customerName} ({order.city})
-                </span>
+              <div className="text-left sm:text-right font-mono text-xs text-[#706D68] space-y-1">
+                <div>LOGGED: {new Date(order.createdAt).toLocaleDateString()}</div>
+                <div>DESTINATION: {order.city}</div>
               </div>
             </div>
 
-            {/* Stepped Progress Timeline */}
-            <div className="flex flex-col gap-4">
-              <span className="text-xs font-mono tracking-widest uppercase text-white">
-                CRAFTSMANSHIP & DISPATCH STAGES
+            {/* Restrained Optical Trace Progress Indicator */}
+            <div className="space-y-6">
+              <span className="text-xs font-mono uppercase tracking-[0.22em] text-[#090909] font-bold block">
+                PRODUCTION STAGES
               </span>
 
-              <div className="relative flex flex-col md:flex-row items-start justify-between gap-6 md:gap-2 pt-2">
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-4 font-mono text-xs">
                 {STATUS_STEPS.map((step, idx) => {
                   const currentIdx = getCurrentStepIndex(order.status);
                   const isDone = idx <= currentIdx;
@@ -151,73 +144,52 @@ export default function TrackOrderPage() {
                   return (
                     <div
                       key={step}
-                      className="flex md:flex-col items-center gap-3 text-left md:text-center flex-1"
+                      className={`p-4 border transition-all ${
+                        isCurrent
+                          ? "border-[#090909] bg-[#090909] text-white"
+                          : isDone
+                          ? "border-[#090909]/40 bg-[#F4F1EA] text-[#090909]"
+                          : "border-[#090909]/10 bg-transparent text-[#706D68]/50"
+                      }`}
                     >
-                      {/* Step Indicator Dot */}
-                      <div
-                        className={`w-7 h-7 rounded-full flex items-center justify-center font-mono text-[10px] transition-all ${
-                          isDone
-                            ? "bg-[#7ec8e3] text-[#030304] font-bold shadow-[0_0_12px_rgba(126,200,227,0.4)]"
-                            : "border border-[#2a2a3a] text-[#555566] bg-[#06060a]"
-                        }`}
-                      >
-                        {isDone ? "✓" : idx + 1}
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-[10px] opacity-70">0{idx + 1}</span>
+                        {isDone && <Check className="w-3 h-3" />}
                       </div>
-
-                      <div className="flex flex-col">
-                        <span
-                          className={`text-xs font-mono uppercase tracking-wider ${
-                            isCurrent
-                              ? "text-white font-semibold"
-                              : isDone
-                              ? "text-[#a0a0b2]"
-                              : "text-[#555566]"
-                          }`}
-                        >
-                          {step}
-                        </span>
-                      </div>
+                      <span className="font-bold uppercase tracking-wider block text-[11px] leading-tight">
+                        {step}
+                      </span>
                     </div>
                   );
                 })}
               </div>
             </div>
 
-            {/* Ordered Items Table */}
-            <div className="flex flex-col gap-3 border-t border-[#181824] pt-6">
-              <span className="text-xs font-mono tracking-widest uppercase text-white">
-                COMMISSIONED ATELIER PIECES
+            {/* Order Items Specification */}
+            <div className="space-y-4 pt-4 border-t border-[#090909]/15">
+              <span className="text-xs font-mono uppercase tracking-[0.20em] text-[#090909] font-bold block">
+                COMMISSIONED PIECES
               </span>
-              <div className="flex flex-col gap-2">
+              <div className="space-y-3 font-mono text-xs">
                 {order.items.map((it, i) => (
                   <div
                     key={i}
-                    className="p-3 border border-[#161622] bg-[#050508] flex items-center justify-between text-xs"
+                    className="p-4 bg-[#F4F1EA] border border-[#090909]/10 flex justify-between items-center"
                   >
-                    <div className="flex flex-col">
-                      <span className="font-medium text-white">{it.title}</span>
-                      <span className="text-[10px] font-mono text-[#7ec8e3]">
-                        {it.format.toUpperCase()} • {it.size}
-                      </span>
+                    <div>
+                      <span className="font-bold text-[#090909] uppercase block">{it.title}</span>
+                      <span className="text-[#706D68]">{it.format} • {it.size}</span>
                     </div>
-                    <span className="font-mono text-white">
-                      ₹{it.price} × {it.quantity}
-                    </span>
+                    <span className="font-bold text-[#090909]">Qty: {it.quantity}</span>
                   </div>
                 ))}
               </div>
             </div>
-
-            {/* Destination & Payment Verification */}
-            <div className="p-4 border border-[#1a1a26] bg-[#050508] text-xs font-mono text-[#808092] flex flex-col gap-1.5">
-              <span className="text-white uppercase tracking-wider">DISPATCH NOTES</span>
-              <span>• Delivery Address: {order.deliveryAddress}, {order.city}</span>
-              <span>• Total Value: ₹{order.totalAmount}</span>
-              <span>• Studio Reference Verification: Active</span>
-            </div>
           </div>
         )}
       </section>
+
+      <Footer />
     </main>
   );
 }

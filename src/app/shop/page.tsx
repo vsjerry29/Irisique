@@ -1,434 +1,300 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import Image from "next/image";
 import Link from "next/link";
+import { createPortal } from "react-dom";
 import Header from "@/components/layout/Header";
-import { PRODUCTS_CATALOG, GALLERY_ITEMS } from "@/lib/data";
-import { Product, ProductVariant } from "@/lib/types";
+import Footer from "@/components/layout/Footer";
+import { PRODUCTS_CATALOG, ProductItem } from "@/lib/products";
 import { useCart } from "@/lib/cart";
-import { ArrowRight, CheckCircle2, ShieldCheck, ShoppingBag, AlertCircle } from "lucide-react";
+import { ArrowUpRight, X, Check, ShoppingBag } from "lucide-react";
+import OpticalTrace from "@/components/ui/OpticalTrace";
 
 export default function ShopPage() {
-  const { items, addItem, removeItem, clearCart, totalPrice } = useCart();
+  const { addItem, setIsCartOpen } = useCart();
 
-  // Customizer State
-  const [selectedProduct, setSelectedProduct] = useState<Product>(PRODUCTS_CATALOG[1]); // Default Print
-  const [selectedVariant, setSelectedVariant] = useState<ProductVariant>(PRODUCTS_CATALOG[1].variants[0]);
-  const [selectedArtwork, setSelectedArtwork] = useState(GALLERY_ITEMS[0]);
-  const [customInscription, setCustomInscription] = useState("");
+  const [activeCategory, setActiveCategory] = useState<string>("ALL");
+  const [selectedProduct, setSelectedProduct] = useState<ProductItem | null>(null);
+  const [selectedSize, setSelectedSize] = useState<string>("");
+  const [quantity, setQuantity] = useState(1);
+  const [addedNotice, setAddedNotice] = useState<string | null>(null);
+  const [mounted, setMounted] = useState(false);
 
-  // Checkout Form State
-  const [checkoutStep, setCheckoutStep] = useState<"cart" | "shipping" | "success">("cart");
-  const [customerDetails, setCustomerDetails] = useState({
-    name: "",
-    mobile: "",
-    email: "",
-    address: "",
-    city: "Pondicherry",
-    notes: "",
-  });
-  const [loading, setLoading] = useState(false);
-  const [orderError, setOrderError] = useState<string | null>(null);
-  const [confirmedOrder, setConfirmedOrder] = useState<any | null>(null);
+  const modalContainerRef = useRef<HTMLDivElement>(null);
+  const closeBtnRef = useRef<HTMLButtonElement>(null);
 
-  // Read URL query params on load (e.g. /shop?format=digital)
   useEffect(() => {
-    if (typeof window !== "undefined") {
-      const params = new URLSearchParams(window.location.search);
-      const fmt = params.get("format");
-      if (fmt) {
-        const found = PRODUCTS_CATALOG.find((p) => p.format === fmt);
-        if (found) {
-          setSelectedProduct(found);
-          setSelectedVariant(found.variants[0] || null);
-        }
-      }
-    }
+    setMounted(true);
   }, []);
 
-  const handleProductChange = (prod: Product) => {
-    setSelectedProduct(prod);
-    setSelectedVariant(prod.variants[0]);
-  };
-
-  const handleAddCustomizedToCart = () => {
-    addItem({
-      productId: selectedProduct.id,
-      title: selectedProduct.title,
-      format: selectedProduct.format,
-      size: selectedVariant.size,
-      price: selectedVariant.price,
-      quantity: 1,
-      irisArtworkName: selectedArtwork.name,
-      personalisationText: customInscription || "Studio Proofing",
-    });
-  };
-
-  const handlePlaceOrder = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setOrderError(null);
-
-    if (!customerDetails.name.trim() || !customerDetails.mobile.trim() || !customerDetails.address.trim()) {
-      setOrderError("Please complete all required shipping fields.");
-      return;
+  // Update selected size when product opens
+  useEffect(() => {
+    if (selectedProduct && selectedProduct.sizes.length > 0) {
+      setSelectedSize(selectedProduct.sizes[0]);
+      setQuantity(1);
     }
+  }, [selectedProduct]);
 
-    if (items.length === 0) {
-      setOrderError("Your atelier cart is empty.");
-      return;
-    }
+  // Modal accessibility: body scroll lock & Escape key
+  useEffect(() => {
+    if (!selectedProduct) return;
 
-    setLoading(true);
-    try {
-      const res = await fetch("/api/orders", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          customerName: customerDetails.name,
-          customerMobile: customerDetails.mobile,
-          customerEmail: customerDetails.email,
-          deliveryAddress: customerDetails.address,
-          city: customerDetails.city,
-          items: items,
-          notes: customerDetails.notes,
-        }),
-      });
+    const originalOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    closeBtnRef.current?.focus();
 
-      const data = await res.json();
-      if (!res.ok) {
-        throw new Error(data.error || "Order submission failed.");
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        setSelectedProduct(null);
       }
+    };
 
-      setConfirmedOrder(data.order);
-      setCheckoutStep("success");
-      clearCart();
-    } catch (err: any) {
-      setOrderError(err.message);
-    } finally {
-      setLoading(false);
-    }
+    window.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.body.style.overflow = originalOverflow;
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [selectedProduct]);
+
+  const categories = ["ALL", "Museum Wall Art", "Gallery Display", "Sculptural Object", "Luminescent Art", "Wearable Artifact", "Master Asset"];
+
+  const filteredProducts = activeCategory === "ALL"
+    ? PRODUCTS_CATALOG
+    : PRODUCTS_CATALOG.filter((p) => p.category === activeCategory);
+
+  const handleAddToCart = (product: ProductItem) => {
+    addItem({
+      productId: product.id,
+      title: product.name,
+      format: product.formatLabel,
+      size: selectedSize || product.sizes[0] || "Standard",
+      price: product.price,
+      quantity: quantity,
+      irisArtworkName: "Bespoke Biometric Stroma",
+    });
+
+    setAddedNotice(`Added ${quantity}× ${product.name} to atelier order`);
+    setTimeout(() => setAddedNotice(null), 3000);
+    setSelectedProduct(null);
   };
 
   return (
-    <main className="relative bg-[#030405] text-[#f0f0f2] min-h-screen selection:bg-[#7ec8e3]/30">
+    <main className="relative bg-[#F4F1EA] text-[#090909] min-h-screen selection:bg-[#090909] selection:text-[#FAFAF8]">
       <Header />
 
-      <section className="pt-32 pb-20 px-6 sm:px-12 md:px-16 max-w-7xl mx-auto">
-        {/* Page Title */}
-        <div className="flex flex-col gap-3 border-b border-[#181824] pb-8 mb-12">
-          <div className="flex items-center gap-2.5 text-[10px] font-mono tracking-[0.30em] uppercase text-[#7ec8e3]">
-            <span className="w-1.5 h-1.5 rounded-full bg-[#7ec8e3] animate-pulse" />
-            <span>BESPOKE ATELIER STORE</span>
+      <section className="pt-32 pb-24 sm:pt-40 sm:pb-32 px-6 sm:px-12 md:px-16 max-w-7xl mx-auto">
+        {/* ─── Asymmetrical Header ─── */}
+        <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-8 pb-12 border-b border-[#090909]/15">
+          <div className="space-y-4">
+            <div className="flex items-center gap-3 text-xs font-mono tracking-[0.26em] text-[#706D68] uppercase">
+              <span className="w-2 h-2 rounded-full bg-[#090909]" />
+              <span>ATELIER EDITIONS & FORMATS</span>
+            </div>
+            <h1 className="font-display text-5xl sm:text-7xl md:text-8xl lg:text-9xl font-bold tracking-[-0.04em] uppercase text-[#090909] leading-[0.85]">
+              ATELIER<br />SHOP.
+            </h1>
           </div>
-          <h1 className="font-display text-4xl sm:text-6xl font-light uppercase text-white">
-            CONFIGURE & ORDER.
-          </h1>
-          <p className="max-w-xl text-xs sm:text-sm font-sans text-[#8e8e9c] leading-relaxed">
-            Select an edition format, choose your stroma masterwork, and specify your archival sizing.
+
+          <p className="max-w-md font-sans text-sm sm:text-base text-[#706D68] leading-relaxed pb-1">
+            Choose an archival medium for your biometric iris. Every physical edition is custom-crafted by master printmakers in Pondicherry.
           </p>
         </div>
 
-        {checkoutStep === "success" && confirmedOrder ? (
-          /* ─── Success Confirmation ─── */
-          <div className="max-w-2xl mx-auto p-8 sm:p-12 border border-[#222232] bg-[#07070c] flex flex-col gap-6 animate-fadeIn">
-            <div className="flex items-center gap-3 text-[#7ec8e3]">
-              <CheckCircle2 className="w-8 h-8" />
-              <div className="flex flex-col">
-                <span className="font-mono text-xs tracking-widest uppercase">
-                  ORDER REQUEST RECEIVED
-                </span>
-                <span className="font-display text-2xl uppercase text-white">
-                  REFERENCE #{confirmedOrder.id}
-                </span>
-              </div>
-            </div>
+        {/* ─── Category Filter Navigation ─── */}
+        <div className="flex items-center gap-4 sm:gap-8 overflow-x-auto py-8 border-b border-[#090909]/10 text-xs font-mono uppercase tracking-wider scrollbar-none">
+          {categories.map((cat) => (
+            <button
+              key={cat}
+              onClick={() => setActiveCategory(cat)}
+              className={`whitespace-nowrap pb-1 border-b-2 transition-all cursor-pointer ${
+                activeCategory === cat
+                  ? "border-[#090909] text-[#090909] font-bold"
+                  : "border-transparent text-[#706D68] hover:text-[#090909]"
+              }`}
+            >
+              {cat}
+            </button>
+          ))}
+        </div>
 
-            <p className="text-xs sm:text-sm font-sans text-[#9a9aa8] leading-relaxed">
-              Thank you, <strong className="text-white">{confirmedOrder.customerName}</strong>. Your atelier order has been
-              logged into our production pipeline.
-            </p>
-
-            <div className="p-4 border border-[#1e1e2c] bg-[#0c0c14] font-mono text-xs text-[#808092] flex flex-col gap-2">
-              <span className="text-white uppercase tracking-wider">ORDER SUMMARY</span>
-              <span>• Tracking ID: {confirmedOrder.id}</span>
-              <span>• Total Amount: ₹{confirmedOrder.totalAmount}</span>
-              <span>• Status: {confirmedOrder.status}</span>
-              <span>• Destination: {confirmedOrder.deliveryAddress}, {confirmedOrder.city}</span>
-            </div>
-
-            <div className="flex flex-col sm:flex-row items-center gap-4 pt-2">
-              <Link
-                href={`/track-order?id=${confirmedOrder.id}`}
-                className="inline-flex items-center justify-center gap-2 w-full sm:w-auto px-6 py-3.5 bg-[#7ec8e3] text-[#030304] text-xs font-sans font-semibold uppercase tracking-wider"
-              >
-                <span>TRACK THIS ORDER</span>
-                <ArrowRight className="w-4 h-4" />
-              </Link>
-              <button
-                onClick={() => setCheckoutStep("cart")}
-                className="w-full sm:w-auto px-6 py-3.5 border border-[#222230] text-xs font-mono uppercase tracking-wider text-white"
-              >
-                CONTINUE BROWSING
-              </button>
-            </div>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-start">
-            {/* Left Column: Live Interactive Visualizer */}
-            <div className="lg:col-span-7 flex flex-col gap-8">
-              {/* Visual Preview */}
-              <div className="relative w-full aspect-[4/3] rounded-2xl overflow-hidden border border-[#202030] bg-[#050508] shadow-[0_0_80px_rgba(0,0,0,0.8)]">
+        {/* ─── Editorial Asymmetrical Product Grid ─── */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-12 sm:gap-16 pt-12 sm:pt-16">
+          {filteredProducts.map((product) => (
+            <article
+              key={product.id}
+              onClick={() => setSelectedProduct(product)}
+              className="group flex flex-col cursor-pointer select-none"
+            >
+              {/* Product Photograph (Large, Sharp Studio Lighting, Zero Card Border) */}
+              <div className="relative w-full aspect-square overflow-hidden bg-transparent">
                 <Image
-                  src={selectedProduct.image}
-                  alt={selectedProduct.title}
+                  src={product.image}
+                  alt={product.name}
                   fill
-                  priority
-                  className="object-contain p-6 sm:p-10 transition-all duration-500 animate-fadeIn"
-                />
-
-                <div className="absolute bottom-4 left-4 right-4 p-3 bg-black/75 backdrop-blur-md border border-[#20202e] flex items-center justify-between text-[11px] font-mono text-[#8e8e9c]">
-                  <span className="text-white uppercase">{selectedProduct.title}</span>
-                  <span className="text-[#7ec8e3] font-semibold">₹{selectedVariant.price}</span>
-                </div>
-              </div>
-
-              {/* Step 1: Edition Format Selector */}
-              <div className="flex flex-col gap-3">
-                <span className="text-xs font-mono text-[#7ec8e3] tracking-widest uppercase">
-                  1. CHOOSE PRESENTATION FORMAT
-                </span>
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                  {PRODUCTS_CATALOG.map((prod) => (
-                    <button
-                      key={prod.id}
-                      onClick={() => handleProductChange(prod)}
-                      className={`p-3.5 border text-left flex flex-col gap-1 transition-all ${
-                        selectedProduct.id === prod.id
-                          ? "border-[#7ec8e3] bg-[#7ec8e3]/10"
-                          : "border-[#1b1b26] bg-[#07070c] hover:border-[#333348]"
-                      }`}
-                    >
-                      <span className="font-sans text-xs font-medium text-white">
-                        {prod.title}
-                      </span>
-                      <span className="font-mono text-[11px] text-[#7ec8e3]">
-                        From ₹{prod.startingPrice}
-                      </span>
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Step 2: Scale & Dimension Options */}
-              <div className="flex flex-col gap-3">
-                <span className="text-xs font-mono text-[#7ec8e3] tracking-widest uppercase">
-                  2. SELECT DIMENSIONS
-                </span>
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                  {selectedProduct.variants.map((v) => (
-                    <button
-                      key={v.id}
-                      onClick={() => setSelectedVariant(v)}
-                      className={`p-3 border text-left flex flex-col gap-1 transition-all ${
-                        selectedVariant.id === v.id
-                          ? "border-[#7ec8e3] bg-[#7ec8e3]/10"
-                          : "border-[#1b1b26] bg-[#07070c] hover:border-[#333348]"
-                      }`}
-                    >
-                      <span className="font-sans text-xs text-white">{v.name}</span>
-                      <span className="font-mono text-[10px] text-[#808092]">{v.size}</span>
-                      <span className="font-mono text-xs text-[#7ec8e3] mt-1">₹{v.price}</span>
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Step 3: Stroma Artwork Assignment */}
-              <div className="flex flex-col gap-3">
-                <span className="text-xs font-mono text-[#7ec8e3] tracking-widest uppercase">
-                  3. SELECT SAMPLE STROMA OR ASSIGN PERSONAL SCAN
-                </span>
-                <div className="grid grid-cols-3 gap-3">
-                  {GALLERY_ITEMS.map((art) => (
-                    <button
-                      key={art.id}
-                      onClick={() => setSelectedArtwork(art)}
-                      className={`relative aspect-square rounded-xl overflow-hidden border p-1 transition-all ${
-                        selectedArtwork.id === art.id
-                          ? "border-[#7ec8e3] ring-2 ring-[#7ec8e3]/40"
-                          : "border-[#1c1c28] opacity-60 hover:opacity-100"
-                      }`}
-                    >
-                      <Image src={art.image} alt={art.name} fill className="object-cover" />
-                      <div className="absolute inset-x-0 bottom-0 p-1.5 bg-black/80 text-[9px] font-mono text-center text-white truncate">
-                        {art.name}
-                      </div>
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Inscription / Note */}
-              <div className="flex flex-col gap-2">
-                <label className="text-[11px] font-mono uppercase tracking-wider text-[#9e9ea8]">
-                  4. Custom Personalisation Inscription (Optional)
-                </label>
-                <input
-                  type="text"
-                  placeholder="e.g. Maya & Arjun • 2026"
-                  value={customInscription}
-                  onChange={(e) => setCustomInscription(e.target.value)}
-                  className="p-3 border border-[#222232] bg-[#0c0c14] text-white text-xs font-sans focus:outline-none focus:border-[#7ec8e3]"
+                  sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                  className="object-contain transition-transform duration-700 ease-out group-hover:scale-[1.025]"
                 />
               </div>
 
-              {/* Add Customized Item to Cart Button */}
-              <button
-                onClick={handleAddCustomizedToCart}
-                className="w-full py-4 bg-[#7ec8e3] hover:bg-[#68bcdb] text-[#030304] text-xs font-sans font-semibold tracking-[0.24em] uppercase transition-all"
-              >
-                ADD CONFIGURED PIECE TO ATELIER CART (₹{selectedVariant.price})
-              </button>
-            </div>
-
-            {/* Right Column: Cart Review & Delivery Checkout Form */}
-            <div className="lg:col-span-5 border border-[#1a1a28] bg-[#07070c]/90 p-6 sm:p-8 flex flex-col gap-6">
-              <div className="flex items-center justify-between border-b border-[#181824] pb-4">
-                <div className="flex items-center gap-2.5">
-                  <ShoppingBag className="w-4 h-4 text-[#7ec8e3]" />
-                  <h3 className="font-display text-xl uppercase text-white">
-                    ORDER CHECKOUT
-                  </h3>
-                </div>
-                <span className="font-mono text-xs text-[#7ec8e3]">
-                  {items.length} {items.length === 1 ? "Item" : "Items"}
-                </span>
-              </div>
-
-              {orderError && (
-                <div className="p-3 border border-[#e05848]/60 bg-[#e05848]/10 text-xs font-mono text-[#fca5a5] flex items-center gap-2">
-                  <AlertCircle className="w-4 h-4 shrink-0" />
-                  <span>{orderError}</span>
-                </div>
-              )}
-
-              {/* Cart Items List in Sidebar */}
-              <div className="flex flex-col gap-3 max-h-60 overflow-y-auto pr-1">
-                {items.length === 0 ? (
-                  <div className="p-6 text-center text-xs font-mono text-[#666677] border border-dashed border-[#1c1c28]">
-                    Your cart is currently empty. Configure a piece above or explore our collections.
-                  </div>
-                ) : (
-                  items.map((it) => (
-                    <div
-                      key={it.id}
-                      className="p-3 border border-[#181824] bg-[#0a0a12] flex items-start justify-between text-xs"
-                    >
-                      <div className="flex flex-col gap-0.5">
-                        <span className="font-medium text-white">{it.title}</span>
-                        <span className="text-[10px] text-[#7ec8e3] font-mono">
-                          {it.format} • {it.size}
-                        </span>
-                        <span className="text-[10px] text-[#777788]">
-                          Qty: {it.quantity} × ₹{it.price}
-                        </span>
-                      </div>
-                      <button
-                        onClick={() => removeItem(it.id)}
-                        className="text-[#666677] hover:text-[#ff6666] font-mono text-xs"
-                      >
-                        ✕
-                      </button>
-                    </div>
-                  ))
-                )}
-              </div>
-
-              {/* Subtotal */}
-              <div className="flex items-center justify-between border-t border-[#181824] pt-4">
-                <span className="font-mono text-xs uppercase tracking-wider text-[#8e8e9c]">
-                  Total Archival Value:
-                </span>
-                <span className="font-mono text-lg font-semibold text-white">
-                  ₹{totalPrice}
-                </span>
-              </div>
-
-              {/* Delivery Details Form */}
-              <form onSubmit={handlePlaceOrder} className="flex flex-col gap-4 border-t border-[#181824] pt-4">
-                <span className="text-xs font-mono uppercase tracking-wider text-white">
-                  Delivery Destination
-                </span>
-
-                <div className="flex flex-col gap-1.5">
-                  <label className="text-[10px] font-mono uppercase text-[#888898]">Full Name *</label>
-                  <input
-                    type="text"
-                    required
-                    placeholder="e.g. Rahul Sen"
-                    value={customerDetails.name}
-                    onChange={(e) => setCustomerDetails({ ...customerDetails, name: e.target.value })}
-                    className="p-2.5 border border-[#222232] bg-[#0c0c14] text-white text-xs font-sans focus:outline-none focus:border-[#7ec8e3]"
-                  />
-                </div>
-
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="flex flex-col gap-1.5">
-                    <label className="text-[10px] font-mono uppercase text-[#888898]">Mobile Number *</label>
-                    <input
-                      type="tel"
-                      required
-                      placeholder="+91 98..."
-                      value={customerDetails.mobile}
-                      onChange={(e) => setCustomerDetails({ ...customerDetails, mobile: e.target.value })}
-                      className="p-2.5 border border-[#222232] bg-[#0c0c14] text-white text-xs font-sans focus:outline-none focus:border-[#7ec8e3]"
-                    />
-                  </div>
-
-                  <div className="flex flex-col gap-1.5">
-                    <label className="text-[10px] font-mono uppercase text-[#888898]">City *</label>
-                    <input
-                      type="text"
-                      required
-                      value={customerDetails.city}
-                      onChange={(e) => setCustomerDetails({ ...customerDetails, city: e.target.value })}
-                      className="p-2.5 border border-[#222232] bg-[#0c0c14] text-white text-xs font-sans focus:outline-none focus:border-[#7ec8e3]"
-                    />
-                  </div>
-                </div>
-
-                <div className="flex flex-col gap-1.5">
-                  <label className="text-[10px] font-mono uppercase text-[#888898]">Street Address *</label>
-                  <textarea
-                    rows={2}
-                    required
-                    placeholder="Door No, Street Name, Landmark..."
-                    value={customerDetails.address}
-                    onChange={(e) => setCustomerDetails({ ...customerDetails, address: e.target.value })}
-                    className="p-2.5 border border-[#222232] bg-[#0c0c14] text-white text-xs font-sans focus:outline-none focus:border-[#7ec8e3]"
-                  />
-                </div>
-
-                <div className="p-3 border border-[#1e1e2c] bg-[#06060a] text-[10px] font-mono text-[#777788] flex items-center gap-2">
-                  <ShieldCheck className="w-4 h-4 text-[#7ec8e3] shrink-0" />
-                  <span>
-                    No immediate online charge. Studio will contact you to verify biometric alignment before final invoice.
+              {/* Minimal Product Meta Embedded in Whitespace */}
+              <div className="mt-6 flex flex-col gap-2 pt-4 border-t border-[#090909]/15">
+                <div className="flex items-baseline justify-between gap-4">
+                  <h2 className="font-sans text-lg font-bold uppercase tracking-[0.12em] text-[#090909]">
+                    {product.name}
+                  </h2>
+                  <span className="font-mono text-sm text-[#090909] font-bold">
+                    From ${product.price}
                   </span>
                 </div>
 
-                <button
-                  type="submit"
-                  disabled={loading || items.length === 0}
-                  className="w-full py-4 bg-[#7ec8e3] hover:bg-[#68bcdb] text-[#030304] text-xs font-sans font-semibold tracking-[0.24em] uppercase transition-all disabled:opacity-40"
-                >
-                  {loading ? "PROCESSING ATELIER ORDER..." : "CONFIRM ATELIER ORDER REQUEST"}
-                </button>
-              </form>
-            </div>
-          </div>
-        )}
+                <div className="flex items-center justify-between text-xs text-[#706D68]">
+                  <span className="font-sans">{product.formatLabel}</span>
+                  <span className="font-sans tracking-[0.16em] uppercase text-[#090909] font-bold inline-flex items-center gap-1 group-hover:underline underline-offset-4">
+                    SPECIFY ↗
+                  </span>
+                </div>
+              </div>
+            </article>
+          ))}
+        </div>
       </section>
+
+      {/* ─── UNIQUE PRODUCT POPUP: Paper Shutter Portfolio ─── */}
+      {selectedProduct && mounted && typeof document !== "undefined" &&
+        createPortal(
+          <div
+            ref={modalContainerRef}
+            role="dialog"
+            aria-modal="true"
+            aria-label={`${selectedProduct.name} Configuration`}
+            className="fixed inset-0 z-[100] flex items-center justify-center bg-[#F4F1EA] text-[#090909] p-6 sm:p-12 md:p-16 select-none animate-fadeIn overflow-y-auto"
+            onClick={() => setSelectedProduct(null)}
+          >
+            {/* Top-Right Safe Area Close Button */}
+            <button
+              ref={closeBtnRef}
+              onClick={() => setSelectedProduct(null)}
+              className="fixed right-6 sm:right-10 z-[110] flex items-center gap-2.5 px-4 py-2 text-xs font-mono tracking-[0.22em] uppercase text-[#090909] bg-[#FAFAF8] hover:bg-[#E8E4DC] border border-[#090909]/20 transition-all cursor-pointer"
+              style={{ top: "max(1.5rem, env(safe-area-inset-top, 1.5rem))" }}
+              aria-label="Close product portfolio"
+            >
+              <span>CLOSE [ESC]</span>
+              <X className="w-4 h-4 text-[#090909]" />
+            </button>
+
+            {/* Paper Shutter Portfolio Content */}
+            <div
+              className="relative max-w-6xl w-full flex flex-col md:flex-row items-center gap-10 md:gap-16 my-auto"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Product Large Photograph */}
+              <div className="relative w-full md:w-[55%] aspect-square max-h-[68vh] overflow-hidden flex items-center justify-center">
+                <Image
+                  src={selectedProduct.image}
+                  alt={selectedProduct.name}
+                  fill
+                  priority
+                  sizes="(max-width: 768px) 100vw, 55vw"
+                  className="object-contain"
+                />
+              </div>
+
+              {/* Specification & Selection Controls */}
+              <div className="w-full md:w-[45%] flex flex-col items-start gap-6">
+                <div>
+                  <span className="text-xs font-mono tracking-[0.24em] uppercase text-[#706D68] block mb-2">
+                    {selectedProduct.category} • {selectedProduct.formatLabel}
+                  </span>
+                  <h3 className="font-display text-4xl sm:text-5xl font-bold uppercase tracking-tight text-[#090909] leading-tight">
+                    {selectedProduct.name}
+                  </h3>
+                  <div className="font-mono text-2xl font-bold text-[#090909] mt-2">
+                    ${selectedProduct.price}
+                  </div>
+                </div>
+
+                <p className="font-sans text-sm text-[#706D68] leading-relaxed">
+                  {selectedProduct.description}
+                </p>
+
+                {/* Available Sizes / Variants */}
+                {selectedProduct.sizes.length > 0 && (
+                  <div className="w-full space-y-2 pt-2 border-t border-[#090909]/15">
+                    <span className="text-xs font-mono tracking-widest uppercase text-[#090909] font-bold block">
+                      ARCHIVAL SPECIFICATIONS:
+                    </span>
+                    <div className="flex flex-wrap gap-2 pt-1">
+                      {selectedProduct.sizes.map((s) => (
+                        <button
+                          key={s}
+                          onClick={() => setSelectedSize(s)}
+                          className={`px-4 py-2 text-xs font-mono uppercase tracking-wider transition-all border cursor-pointer ${
+                            selectedSize === s
+                              ? "bg-[#090909] text-white border-[#090909] font-bold"
+                              : "bg-transparent text-[#090909] border-[#090909]/30 hover:border-[#090909]"
+                          }`}
+                        >
+                          {s}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Quantity & Action Controls */}
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4 w-full pt-4 border-t border-[#090909]/15">
+                  <div className="flex items-center border border-[#090909]/30 text-xs font-mono h-12">
+                    <button
+                      type="button"
+                      onClick={() => setQuantity(Math.max(1, quantity - 1))}
+                      className="px-4 h-full hover:bg-[#090909] hover:text-white transition-colors cursor-pointer"
+                      aria-label="Decrease quantity"
+                    >
+                      −
+                    </button>
+                    <span className="px-4 font-bold min-w-[32px] text-center">
+                      {quantity}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setQuantity(quantity + 1)}
+                      className="px-4 h-full hover:bg-[#090909] hover:text-white transition-colors cursor-pointer"
+                      aria-label="Increase quantity"
+                    >
+                      +
+                    </button>
+                  </div>
+
+                  <button
+                    onClick={() => handleAddToCart(selectedProduct)}
+                    className="flex-1 py-4 px-6 bg-[#090909] text-[#FAFAF8] text-xs font-sans font-bold tracking-[0.22em] uppercase hover:bg-[#262626] transition-all flex items-center justify-center gap-2 cursor-pointer h-12"
+                  >
+                    <span>ADD TO ATELIER ORDER</span>
+                    <ArrowUpRight className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>,
+          document.body
+        )}
+
+      {/* Cart Toast Notification */}
+      {addedNotice && (
+        <div className="fixed bottom-8 right-8 z-[120] px-6 py-4 bg-[#090909] text-[#FAFAF8] text-xs font-mono tracking-widest uppercase flex items-center gap-3 shadow-2xl animate-fadeIn">
+          <Check className="w-4 h-4 text-white" />
+          <span>{addedNotice}</span>
+          <button
+            onClick={() => setIsCartOpen(true)}
+            className="ml-3 underline underline-offset-4 font-bold hover:text-white"
+          >
+            VIEW CART
+          </button>
+        </div>
+      )}
+
+      <Footer />
     </main>
   );
 }

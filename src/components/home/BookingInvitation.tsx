@@ -7,6 +7,7 @@ import { ArrowUpRight, X, Calendar, MapPin } from "lucide-react";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { SITE_CONFIG } from "@/lib/config";
+import OpticalTrace from "@/components/ui/OpticalTrace";
 
 export default function BookingInvitation() {
   const [isPopupModalOpen, setIsPopupModalOpen] = useState(false);
@@ -110,7 +111,7 @@ export default function BookingInvitation() {
         className="relative w-full min-h-[85vh] bg-[#090909] py-28 sm:py-36 md:py-44 flex flex-col justify-between px-6 sm:px-10 md:px-16 lg:px-24"
       >
         {/* Top Meta Indicator */}
-        <div className="max-w-7xl mx-auto w-full flex items-center justify-between border-b border-white/15 pb-8">
+        <div className="max-w-7xl mx-auto w-full flex items-center justify-between border-b border-white/15 pb-8 relative">
           <div className="flex items-center gap-3 text-xs font-mono tracking-[0.26em] uppercase text-white/60">
             <span className="w-2 h-2 rounded-full bg-white animate-pulse" />
             <span>05 / PRIVATE APPOINTMENTS</span>
@@ -118,6 +119,11 @@ export default function BookingInvitation() {
           <span className="text-xs font-mono tracking-widest uppercase text-white/50">
             PONDICHERRY, INDIA
           </span>
+
+          {/* Optical Trace Motif on Dark Surface */}
+          <div className="absolute -bottom-8 right-0 w-80 h-20 opacity-30 hidden md:block">
+            <OpticalTrace theme="dark" variant="booking" />
+          </div>
         </div>
 
         {/* Center Main Conversion Hero Typography (Two Halves Boldness) */}

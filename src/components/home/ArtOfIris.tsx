@@ -2,16 +2,19 @@
 
 import React, { useState, useEffect, useRef } from "react";
 import Image from "next/image";
+import Link from "next/link";
 import { createPortal } from "react-dom";
 import { ArrowUpRight, X } from "lucide-react";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
+import OpticalTrace from "@/components/ui/OpticalTrace";
 
 export interface ArtworkComposition {
   id: "solo" | "couple" | "family";
   label: string;
+  category: string;
   title: string;
-  format: string;
+  summary: string;
   dimensions: string;
   image: string;
   aspect: string;
@@ -22,9 +25,10 @@ const COMPOSITIONS: ArtworkComposition[] = [
   {
     id: "solo",
     label: "SOLO",
-    title: "Singular Microcosm",
-    format: "Individual Biometric Stroma",
-    dimensions: "Square Fine Art • Up to 100 × 100 cm",
+    category: "SOLO COMPOSITION",
+    title: "SINGULAR MICROCOSM",
+    summary: "An intimate macroscopic exploration of an individual stroma.",
+    dimensions: "Square Format • Up to 100 × 100 cm",
     image: "/assets/gallery/iris_sapphire.webp",
     aspect: "aspect-square",
     maxWidthClass: "max-w-2xl lg:max-w-3xl",
@@ -32,8 +36,9 @@ const COMPOSITIONS: ArtworkComposition[] = [
   {
     id: "couple",
     label: "COUPLE",
-    title: "Dual Harmony",
-    format: "Interwoven Resonance",
+    category: "COUPLE COMPOSITION",
+    title: "DUAL HARMONY",
+    summary: "Two distinct irises converging in natural visual equilibrium.",
     dimensions: "Panoramic Diptych • Up to 160 × 80 cm",
     image: "/assets/couple/couple_artwork_final.webp",
     aspect: "aspect-[16/9]",
@@ -42,8 +47,9 @@ const COMPOSITIONS: ArtworkComposition[] = [
   {
     id: "family",
     label: "FAMILY",
-    title: "Cosmic Constellation",
-    format: "Generational Heritage Matrix",
+    category: "FAMILY COMPOSITION",
+    title: "COSMIC CONSTELLATION",
+    summary: "Three individual irises, composed into one enduring artwork.",
     dimensions: "Grand Horizon • Up to 200 × 90 cm",
     image: "/assets/art/family_artwork_final.webp",
     aspect: "aspect-[16/9]",
@@ -64,36 +70,60 @@ export default function ArtOfIris() {
   const incomingImageRef = useRef<HTMLDivElement>(null);
   const headlineRef = useRef<HTMLHeadingElement>(null);
 
+  // Accessibility refs for modal
+  const triggerButtonRef = useRef<HTMLButtonElement | null>(null);
+  const modalContainerRef = useRef<HTMLDivElement>(null);
+  const closeButtonRef = useRef<HTMLButtonElement>(null);
+
   const activeComp = COMPOSITIONS.find((c) => c.id === activeId)!;
   const incomingComp = incomingId ? COMPOSITIONS.find((c) => c.id === incomingId) : null;
 
-  const isTransitioningRef = useRef(false);
   const transitionTimelineRef = useRef<gsap.core.Timeline | null>(null);
 
   useEffect(() => {
     setMounted(true);
   }, []);
 
-  // Lock body scroll when modal is open
+  // ─── Modal Accessibility: Scroll Lock, Focus Trap & Escape Key ───
   useEffect(() => {
-    if (isDetailOpen) {
-      const prev = document.body.style.overflow;
-      document.body.style.overflow = "hidden";
-      return () => {
-        document.body.style.overflow = prev;
-      };
-    }
-  }, [isDetailOpen]);
+    if (!isDetailOpen) return;
 
-  // Global ESC key listener
-  useEffect(() => {
+    const originalOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+
+    // Auto-focus close button
+    setTimeout(() => {
+      closeButtonRef.current?.focus();
+    }, 50);
+
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape" && isDetailOpen) {
+      if (e.key === "Escape") {
         setIsDetailOpen(false);
       }
+      if (e.key === "Tab" && modalContainerRef.current) {
+        const focusables = modalContainerRef.current.querySelectorAll<HTMLElement>(
+          'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+        );
+        if (focusables.length === 0) return;
+        const first = focusables[0];
+        const last = focusables[focusables.length - 1];
+
+        if (e.shiftKey && document.activeElement === first) {
+          e.preventDefault();
+          last.focus();
+        } else if (!e.shiftKey && document.activeElement === last) {
+          e.preventDefault();
+          first.focus();
+        }
+      }
     };
+
     window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
+    return () => {
+      document.body.style.overflow = originalOverflow;
+      window.removeEventListener("keydown", handleKeyDown);
+      triggerButtonRef.current?.focus();
+    };
   }, [isDetailOpen]);
 
   // ─── Choreographed Background Entrance & Parallax Travel ───
@@ -103,7 +133,6 @@ export default function ArtOfIris() {
     gsap.registerPlugin(ScrollTrigger);
 
     const ctx = gsap.context(() => {
-      // 1. Full-viewport curved surface wipe: warm paper retreats dark atmosphere
       if (surfaceRef.current) {
         gsap.fromTo(
           surfaceRef.current,
@@ -126,7 +155,6 @@ export default function ArtOfIris() {
         );
       }
 
-      // 2. Artwork floats into place before background fully settles (visual continuity)
       if (artworkStageRef.current) {
         gsap.fromTo(
           artworkStageRef.current,
@@ -151,7 +179,6 @@ export default function ArtOfIris() {
         );
       }
 
-      // 3. Subtle relative depth shift between headline and artwork
       if (headlineRef.current) {
         gsap.to(headlineRef.current, {
           y: -40,
@@ -175,21 +202,17 @@ export default function ArtOfIris() {
     if (id === activeId && !incomingId) return;
     if (id === incomingId) return;
 
-    // Interrupt any active transition cleanly
     if (transitionTimelineRef.current) {
       transitionTimelineRef.current.kill();
     }
 
     setIncomingId(id);
-    isTransitioningRef.current = true;
 
-    // Wait one microtask for incoming container DOM mount
     requestAnimationFrame(() => {
       const tl = gsap.timeline({
         onComplete: () => {
           setActiveId(id);
           setIncomingId(null);
-          isTransitioningRef.current = false;
           if (activeImageRef.current) {
             gsap.set(activeImageRef.current, { clearProps: "all" });
           }
@@ -198,7 +221,6 @@ export default function ArtOfIris() {
 
       transitionTimelineRef.current = tl;
 
-      // 1. Current artwork shifts back in depth
       if (activeImageRef.current) {
         tl.to(
           activeImageRef.current,
@@ -213,7 +235,6 @@ export default function ArtOfIris() {
         );
       }
 
-      // 2. Incoming artwork enters through the same visual space via controlled mask reveal
       if (incomingImageRef.current) {
         tl.fromTo(
           incomingImageRef.current,
@@ -237,7 +258,6 @@ export default function ArtOfIris() {
     });
   };
 
-  // ─── Tactile Mouse Follow Perspective Shift ───
   const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
     if (!artworkStageRef.current) return;
     const rect = artworkStageRef.current.getBoundingClientRect();
@@ -275,10 +295,15 @@ export default function ArtOfIris() {
         ref={surfaceRef}
         className="relative w-full min-h-screen bg-[#F4F1EA] py-24 sm:py-32 md:py-40 px-6 sm:px-10 md:px-16 lg:px-24 flex flex-col justify-between"
       >
+        {/* Subtle Optical Trace Motif along Section Transition */}
+        <div className="absolute top-0 right-12 w-96 h-28 opacity-40 hidden md:block">
+          <OpticalTrace theme="light" variant="artwork" />
+        </div>
+
         {/* ─── Two Halves Asymmetrical Minimal Header ─── */}
         <div className="max-w-7xl mx-auto w-full flex flex-col lg:flex-row lg:items-end justify-between gap-8 pb-10 sm:pb-14 border-b border-[#090909]/15">
           <div className="space-y-3">
-            <div className="flex items-center gap-3 text-xs font-mono tracking-[0.26em] text-[#77736D] uppercase">
+            <div className="flex items-center gap-3 text-xs font-mono tracking-[0.26em] text-[#706D68] uppercase">
               <span className="w-2 h-2 rounded-full bg-[#090909]" />
               <span>02 / WORKS THAT MOVE</span>
             </div>
@@ -304,7 +329,7 @@ export default function ArtOfIris() {
                     className={`group relative text-base sm:text-lg font-sans tracking-[0.16em] uppercase transition-all duration-300 cursor-pointer ${
                       isActive
                         ? "font-bold text-[#090909]"
-                        : "font-normal text-[#77736D] hover:text-[#090909]"
+                        : "font-normal text-[#706D68] hover:text-[#090909]"
                     }`}
                   >
                     <span>{comp.label}</span>
@@ -321,6 +346,7 @@ export default function ArtOfIris() {
             </div>
 
             <button
+              ref={triggerButtonRef}
               data-explore-btn="true"
               onClick={() => setIsDetailOpen(true)}
               className="group inline-flex items-center gap-2 text-xs font-sans tracking-[0.20em] uppercase font-bold text-[#090909] hover:opacity-70 transition-opacity cursor-pointer"
@@ -376,13 +402,13 @@ export default function ArtOfIris() {
             )}
 
             {/* Minimal Sub-Headline & Dimension Meta */}
-            <div className="w-full flex flex-col sm:flex-row sm:items-baseline justify-between gap-4 mt-8 pt-6 border-t border-[#090909]/10 text-[#77736D]">
+            <div className="w-full flex flex-col sm:flex-row sm:items-baseline justify-between gap-4 mt-8 pt-6 border-t border-[#090909]/10 text-[#706D68]">
               <div className="flex flex-col sm:flex-row sm:items-baseline gap-2 sm:gap-4">
                 <span className="text-sm font-sans tracking-[0.16em] uppercase text-[#090909] font-bold">
                   {incomingComp ? incomingComp.title : activeComp.title}
                 </span>
                 <span className="text-xs font-sans tracking-wide">
-                  — {incomingComp ? incomingComp.format : activeComp.format}
+                  — {incomingComp ? incomingComp.summary : activeComp.summary}
                 </span>
               </div>
 
@@ -400,89 +426,89 @@ export default function ArtOfIris() {
         </div>
 
         {/* ─── Section Bottom Architecture ─── */}
-        <div className="max-w-7xl mx-auto w-full pt-6 flex items-center justify-between text-xs font-mono tracking-[0.24em] uppercase text-[#77736D] border-t border-[#090909]/15">
+        <div className="max-w-7xl mx-auto w-full pt-6 flex items-center justify-between text-xs font-mono tracking-[0.24em] uppercase text-[#706D68] border-t border-[#090909]/15">
           <span>ATELIER PONDICHERRY</span>
           <span>BESPOKE CAPTURE</span>
         </div>
       </div>
 
-      {/* ─── Fullscreen Editorial Artwork Detail Modal (Portal Mounted) ─── */}
+      {/* ─── REDESIGNED ARTWORK POPUP: Option A — Solid Black Gallery Surface ─── */}
       {isDetailOpen && mounted && typeof document !== "undefined" &&
         createPortal(
           <div
+            ref={modalContainerRef}
             role="dialog"
             aria-modal="true"
-            aria-label={`${activeComp.title} Fullscreen View`}
-            className="fixed inset-0 z-[99999] flex items-center justify-center bg-[#090909]/98 backdrop-blur-2xl text-[#FAFAF8] p-6 sm:p-12 md:p-16 select-none animate-fadeIn"
+            aria-label={`${activeComp.title} Fullscreen Gallery View`}
+            className="fixed inset-0 z-[100] flex items-center justify-center bg-[#090909] text-[#FAFAF8] p-6 sm:p-12 md:p-16 select-none animate-fadeIn"
             onClick={() => setIsDetailOpen(false)}
           >
-            {/* Fixed Close Button Above Header */}
+            {/* Elegant, Unobstructed Top-Right Close Button in Safe Area */}
             <button
+              ref={closeButtonRef}
               onClick={(e) => {
                 e.stopPropagation();
                 setIsDetailOpen(false);
               }}
               aria-label="Close artwork details"
-              className="fixed right-6 sm:right-10 z-[100000] p-3 text-white bg-white/10 hover:bg-white/20 border border-white/20 rounded-none transition-all duration-200 backdrop-blur-md cursor-pointer"
+              className="fixed right-6 sm:right-10 z-[110] flex items-center gap-2.5 px-4 py-2 text-xs font-mono tracking-[0.22em] uppercase text-[#FAFAF8] bg-[#171717] hover:bg-[#262626] border border-white/20 transition-all duration-200 cursor-pointer"
               style={{ top: "max(1.5rem, env(safe-area-inset-top, 1.5rem))" }}
             >
-              <X className="w-5 h-5" />
+              <span>CLOSE [ESC]</span>
+              <X className="w-4 h-4 text-white" />
             </button>
 
-            {/* Modal Content */}
+            {/* Contemporary Art Gallery Editorial Layout: 55–60% Artwork, Sharp & Clean */}
             <div
-              className="relative max-w-5xl w-full flex flex-col md:flex-row items-center gap-8 md:gap-14 my-auto"
+              className="relative max-w-6xl w-full flex flex-col md:flex-row items-center gap-10 md:gap-16 my-auto"
               onClick={(e) => e.stopPropagation()}
             >
-              <div className="relative w-full md:w-3/5 aspect-square max-h-[62vh] overflow-hidden">
+              {/* Large, Sharp Photographic Masterwork (No heavy filters or dark blurred halo) */}
+              <div className="relative w-full md:w-[58%] aspect-[4/3] sm:aspect-square md:aspect-[4/3] max-h-[72vh] overflow-hidden flex items-center justify-center">
                 <Image
                   src={activeComp.image}
                   alt={activeComp.title}
                   fill
-                  sizes="(max-width: 768px) 100vw, 60vw"
-                  className="object-contain p-2"
+                  priority
+                  sizes="(max-width: 768px) 100vw, 58vw"
+                  className="object-contain"
                 />
               </div>
 
-              <div className="w-full md:w-2/5 flex flex-col items-start gap-6">
+              {/* Minimal Editorial Information (Guaranteed 100% High-Contrast Legibility) */}
+              <div className="w-full md:w-[42%] flex flex-col items-start gap-6">
                 <div>
-                  <span className="text-xs font-mono tracking-[0.24em] uppercase text-[#D8D4CC]/70 block mb-2">
-                    EDITION • {activeComp.label}
+                  <span className="text-xs font-mono tracking-[0.24em] uppercase text-[#D8D4CC]/80 block mb-2">
+                    {activeComp.category}
                   </span>
-                  <h3 className="font-display text-4xl sm:text-5xl font-bold uppercase tracking-tight text-white leading-tight">
+                  <h3 className="font-display text-4xl sm:text-5xl lg:text-6xl font-bold uppercase tracking-tight text-white leading-[0.95]">
                     {activeComp.title}
                   </h3>
-                  <p className="text-sm font-sans tracking-wide text-[#D8D4CC]/80 mt-1">
-                    {activeComp.format}
+                  <p className="text-sm font-sans text-[#D8D4CC] mt-3 leading-relaxed">
+                    {activeComp.summary}
                   </p>
                 </div>
 
-                <div className="w-full space-y-3 border-y border-white/10 py-5 text-xs font-mono tracking-wider">
-                  <div className="flex justify-between text-white/60">
+                <div className="w-full space-y-2.5 border-y border-white/15 py-5 text-xs font-mono tracking-wider">
+                  <div className="flex justify-between text-white/70">
                     <span>SPECIFICATION</span>
-                    <span className="text-white">{activeComp.dimensions}</span>
+                    <span className="text-white font-medium">{activeComp.dimensions}</span>
                   </div>
-                  <div className="flex justify-between text-white/60">
-                    <span>SURFACE</span>
-                    <span className="text-white">Museum-Grade Rag / Acrylic</span>
-                  </div>
-                  <div className="flex justify-between text-white/60">
-                    <span>EDITION</span>
-                    <span className="text-white">1 of 1 Biometric Bespoke</span>
+                  <div className="flex justify-between text-white/70">
+                    <span>ATELIER STATUS</span>
+                    <span className="text-white font-medium">Original Biometric Commission</span>
                   </div>
                 </div>
 
-                <div className="flex items-center gap-4 w-full">
-                  <button
-                    onClick={() => {
-                      setIsDetailOpen(false);
-                      const el = document.getElementById("booking");
-                      if (el) el.scrollIntoView({ behavior: "smooth" });
-                    }}
-                    className="w-full py-4 text-xs font-sans tracking-[0.22em] uppercase font-bold bg-[#FAFAF8] text-[#090909] hover:bg-white transition-all text-center cursor-pointer"
+                <div className="flex items-center gap-4 w-full pt-1">
+                  <Link
+                    href="/shop"
+                    onClick={() => setIsDetailOpen(false)}
+                    className="w-full py-4 text-xs font-sans tracking-[0.22em] uppercase font-bold bg-[#FAFAF8] text-[#090909] hover:bg-white transition-all text-center cursor-pointer inline-flex items-center justify-center gap-2"
                   >
-                    COMMISSION THIS FORMAT
-                  </button>
+                    <span>EXPLORE FORMATS</span>
+                    <ArrowUpRight className="w-4 h-4 text-[#090909]" />
+                  </Link>
                 </div>
               </div>
             </div>

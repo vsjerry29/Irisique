@@ -44,7 +44,7 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${sansFont.variable} ${displayFont.variable} bg-[#030405] text-[#f0f0f2]`}
+      className={`${sansFont.variable} ${displayFont.variable} bg-[#090909] text-[#FAFAF8]`}
     >
       <head>
         <link
@@ -54,7 +54,7 @@ export default function RootLayout({
           type="image/webp"
         />
       </head>
-      <body className="bg-[#080808] text-[#f5f2ec] antialiased min-h-screen selection:bg-neutral-800 selection:text-white">
+      <body className="bg-[#090909] text-[#FAFAF8] antialiased min-h-screen selection:bg-neutral-800 selection:text-white">
         <CartProvider>
           {children}
           <CartDrawer />
