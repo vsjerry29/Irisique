@@ -15,88 +15,8 @@ if (typeof window !== "undefined") {
   gsap.registerPlugin(ScrollTrigger);
 }
 
-// ─── Photographic Grain Development Shaders ───
-// Simulates an authentic darkroom exposure: multi-scale spatial exposure density (stable simplex noise)
-// and delicate photographic silver grain developing organically into warm ivory (#F4F1EA).
-const devVertexShader = /* glsl */ `
-  varying vec2 vUv;
-  void main() {
-    vUv = uv;
-    gl_Position = vec4(position.xy, 0.0, 1.0);
-  }
-`;
-
-const devFragmentShader = /* glsl */ `
-  precision highp float;
-  varying vec2 vUv;
-  uniform float uDevProgress;
-  uniform vec2 uResolution;
-  uniform float uTime;
-
-  // 2D Simplex Noise
-  vec3 mod289(vec3 x) { return x - floor(x * (1.0 / 289.0)) * 289.0; }
-  vec2 mod289(vec2 x) { return x - floor(x * (1.0 / 289.0)) * 289.0; }
-  vec3 permute(vec3 x) { return mod289(((x * 34.0) + 1.0) * x); }
-
-  float snoise(vec2 v) {
-    const vec4 C = vec4(0.211324865405187, 0.366025403784439,
-                       -0.577350269189626, 0.024390243902439);
-    vec2 i  = floor(v + dot(v, C.yy));
-    vec2 x0 = v - i + dot(i, C.xx);
-    vec2 i1 = (x0.x > x0.y) ? vec2(1.0, 0.0) : vec2(0.0, 1.0);
-    vec4 x12 = x0.xyxy + C.xxzz;
-    x12.xy -= i1;
-    i = mod289(i);
-    vec3 p = permute(permute(i.y + vec3(0.0, i1.y, 1.0)) + i.x + vec3(0.0, i1.x, 1.0));
-    vec3 m = max(0.5 - vec3(dot(x0, x0), dot(x12.xy, x12.xy), dot(x12.zw, x12.zw)), 0.0);
-    m = m * m; m = m * m;
-    return 42.0 * dot(m, vec3(dot(p.x == 0.0 ? vec2(0.0) : x0, vec2(1.0)),
-                              dot(x12.xy, vec2(1.0)),
-                              dot(x12.zw, vec2(1.0))));
-  }
-
-  void main() {
-    if (uDevProgress <= 0.0001) {
-      discard;
-    }
-
-    vec2 uv = vUv;
-    float aspect = uResolution.x / max(uResolution.y, 1.0);
-
-    // Multi-scale stable spatial exposure density (stable with respect to screen)
-    vec2 noiseCoord = vec2(uv.x * aspect, uv.y) * 2.2;
-    float n1 = snoise(noiseCoord);
-    float n2 = snoise(noiseCoord * 2.1 + vec2(1.4, 3.2)) * 0.5;
-    float densityField = (n1 + n2) * 0.22 + (0.5 + 0.5 * uv.y);
-
-    // Organic photographic development wavefront
-    float threshold = mix(-0.25, 1.35, uDevProgress);
-    float exposure = smoothstep(threshold - 0.35, threshold + 0.35, densityField);
-
-    // Fine photographic silver grain (subtle, non-distracting)
-    float grain = fract(sin(dot(gl_FragCoord.xy, vec2(12.9898, 78.233))) * 43758.5453);
-    float grainIntensity = (1.0 - exposure) * exposure * 0.12 * (1.0 - uDevProgress * 0.5);
-
-    // Colors
-    vec3 darkroomBlack = vec3(0.03529, 0.03529, 0.03529); // #090909
-    vec3 warmIvory = vec3(0.95686, 0.94510, 0.91765);    // #F4F1EA
-    vec3 silverMidtone = vec3(0.56, 0.52, 0.47);          // Warm silver halide
-
-    // Chemical tone mapping: black -> silver midtone -> warm ivory
-    vec3 developedColor;
-    if (exposure < 0.5) {
-      developedColor = mix(darkroomBlack, silverMidtone, exposure * 2.0);
-    } else {
-      developedColor = mix(silverMidtone, warmIvory, (exposure - 0.5) * 2.0);
-    }
-
-    // Apply silver grain texture
-    developedColor += (grain - 0.5) * grainIntensity;
-
-    float alpha = smoothstep(0.0, 0.15, uDevProgress);
-    gl_FragColor = vec4(clamp(developedColor, 0.0, 1.0), alpha);
-  }
-`;
+// ─── Three Explicit Scene States ───
+export type SceneState = "HERO_ACTIVE" | "HANDOFF_ACTIVE" | "GALLERY_ACTIVE";
 
 // ─── 11 Anatomical Layer Definitions ───
 interface LayerSpec {
@@ -240,9 +160,11 @@ export default function UnifiedIrisHero({
 
   // Optical Exposure Stage & Handoff Refs
   const exposureOverlayRef = useRef<HTMLDivElement>(null);
+  const grainOverlayRef = useRef<HTMLDivElement>(null);
   const matchedSoloPlateRef = useRef<HTMLDivElement>(null);
   const emergingGalleryHeaderRef = useRef<HTMLDivElement>(null);
   const emergingCategoryBarRef = useRef<HTMLDivElement>(null);
+  const transitionDebugHudRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -251,6 +173,9 @@ export default function UnifiedIrisHero({
         debugEnabledRef.current = true;
         if (debugHudRef.current) debugHudRef.current.classList.remove("hidden");
         if (debugReticleRef.current) debugReticleRef.current.classList.remove("hidden");
+      }
+      if (params.get("transitionDebug") === "1" || (window as any).__transitionDebug) {
+        if (transitionDebugHudRef.current) transitionDebugHudRef.current.classList.remove("hidden");
       }
     }
   }, []);
@@ -645,27 +570,6 @@ export default function UnifiedIrisHero({
     macroQuad.renderOrder = 50; // Sits above background and particles during Phase 1 & 2
     scene.add(macroQuad);
 
-    // D. Photographic Development Fullscreen Quad (Darkroom Silver Halide Grain & Warm Ivory Reveal)
-    const devUniforms = {
-      uDevProgress: { value: 0.0 },
-      uResolution: { value: new THREE.Vector2(width * dpr, height * dpr) },
-      uTime: { value: 0.0 },
-    };
-
-    const devMaterial = new THREE.ShaderMaterial({
-      vertexShader: devVertexShader,
-      fragmentShader: devFragmentShader,
-      uniforms: devUniforms,
-      depthTest: false,
-      depthWrite: false,
-      transparent: true,
-    });
-
-    const devQuad = new THREE.Mesh(new THREE.PlaneGeometry(2, 2), devMaterial);
-    devQuad.renderOrder = 60; // Sits above macro quad, 3D anatomical layers, and darkroom pupil
-    devQuad.visible = false;
-    scene.add(devQuad);
-
     sceneReady = true;
     tryStartEntrance();
 
@@ -679,7 +583,6 @@ export default function UnifiedIrisHero({
       camera.updateProjectionMatrix();
       macroUniforms.uResolution.value.set(width * dpr, height * dpr);
       fogMaterial.uniforms.uResolution.value.set(width, height);
-      devUniforms.uResolution.value.set(width * dpr, height * dpr);
 
       const metrics = getRestingIrisMetrics(width, height);
       if (canonicalState.p <= 0.02) {
@@ -1161,15 +1064,12 @@ export default function UnifiedIrisHero({
       masterLayerGroup.position.set(currentOffsetX * 5.01, currentOffsetY * 5.01, 0);
 
       // ── 2. SCROLL ROTATION (Smooth clockwise rotation, no abrupt stops, no backwards spins) ──
-      // Phase B (0.00 <= p <= 0.20): Complete circular iris rotates clockwise across ~95 deg
-      // Phase C & D (0.20 < p <= 0.74): Rotation gently continues and eases to ~130 deg during immersion
-      // Phase E (p > 0.74): Fixed at 130 deg during gallery transition
       let scrollRotation = 0;
       if (p <= 0.20) {
         const t = p / 0.20;
         scrollRotation = t * THREE.MathUtils.degToRad(95);
-      } else if (p <= 0.74) {
-        const t = (p - 0.20) / 0.54;
+      } else if (p <= 0.62) {
+        const t = (p - 0.20) / 0.42;
         const ease = Math.sin(t * Math.PI * 0.5);
         scrollRotation = THREE.MathUtils.degToRad(95) + ease * THREE.MathUtils.degToRad(35);
       } else {
@@ -1179,11 +1079,6 @@ export default function UnifiedIrisHero({
       masterLayerGroup.rotation.z = -scrollRotation;
 
       // ── 3. CAMERA DEPTH (STRICTLY MONOTONIC FORWARD JOURNEY INTO THE PUPIL) ──
-      // Requirement: Zero zoom-out or pullback while scrolling forward.
-      // Phase A & B (p <= 0.20): Resting frontal view at Z=6.2 (desktop) / 7.2 (mobile)
-      // Phase C (0.20 < p <= 0.62): Camera travels forward into stroma: Z goes from 6.2 -> 1.80
-      // Phase D (0.62 < p <= 0.74): Camera moves directly into the black pupil: Z goes from 1.80 -> 0.25
-      // Phase E (p > 0.74): Submerged in the black pupil: Z=0.25
       const baseCamZ = mobile ? 7.20 : 6.20;
       let camX = 0, camY = 0, camZ = baseCamZ;
 
@@ -1191,16 +1086,15 @@ export default function UnifiedIrisHero({
         camX = mouse.x * 0.04;
         camY = -mouse.y * 0.03;
         camZ = baseCamZ;
-      } else if (p <= 0.62) {
-        const t = (p - 0.20) / 0.42;
+      } else if (p <= 0.52) {
+        const t = (p - 0.20) / 0.32;
         const ease = t * t * (3.0 - 2.0 * t);
         camZ = THREE.MathUtils.lerp(baseCamZ, mobile ? 2.30 : 1.80, ease);
-        // Subtle organic stroma drift that gently dies down as we approach center
         const driftAmp = (1.0 - ease) * 0.08;
         camX = Math.sin(t * Math.PI) * driftAmp + mouse.x * 0.04 * (1 - ease);
         camY = -Math.sin(t * Math.PI) * driftAmp * 0.7 - mouse.y * 0.03 * (1 - ease);
-      } else if (p <= 0.74) {
-        const tPupil = (p - 0.62) / 0.12;
+      } else if (p <= 0.62) {
+        const tPupil = (p - 0.52) / 0.10;
         const easePupil = tPupil * tPupil * (3.0 - 2.0 * tPupil);
         // Direct forward descent into the black pupil core:
         camZ = THREE.MathUtils.lerp(mobile ? 2.30 : 1.80, mobile ? 0.35 : 0.25, easePupil);
@@ -1225,16 +1119,16 @@ export default function UnifiedIrisHero({
         macroQuadOpacity = 0.0;
       }
       macroUniforms.uMasterOpacity.value = macroQuadOpacity;
-      macroQuad.visible = macroQuadOpacity > 0.001;
+      macroQuad.visible = macroQuadOpacity > 0.001 && p <= 0.62;
 
       // ── 5. ATMOSPHERIC FOG DENSITY PROGRESSION ──
       let fogDensity = 0.03;
       if (p <= 0.20) {
         fogDensity = THREE.MathUtils.lerp(0.02, 0.035, p / 0.20);
-      } else if (p <= 0.55) {
-        fogDensity = THREE.MathUtils.lerp(0.035, 0.070, (p - 0.20) / 0.35);
-      } else if (p <= 0.72) {
-        fogDensity = THREE.MathUtils.lerp(0.070, 0.0, (p - 0.55) / 0.17);
+      } else if (p <= 0.50) {
+        fogDensity = THREE.MathUtils.lerp(0.035, 0.070, (p - 0.20) / 0.30);
+      } else if (p <= 0.62) {
+        fogDensity = THREE.MathUtils.lerp(0.070, 0.0, (p - 0.50) / 0.12);
       } else {
         fogDensity = 0.0;
       }
@@ -1245,10 +1139,10 @@ export default function UnifiedIrisHero({
       particleMaterial.uniforms.uTime.value = elapsed;
       if (p <= 0.20) {
         particleMaterial.opacity = 0.7;
+      } else if (p <= 0.52) {
+        particleMaterial.opacity = THREE.MathUtils.lerp(0.7, 0.25, (p - 0.20) / 0.32);
       } else if (p <= 0.62) {
-        particleMaterial.opacity = THREE.MathUtils.lerp(0.7, 0.25, (p - 0.20) / 0.42);
-      } else if (p <= 0.72) {
-        particleMaterial.opacity = THREE.MathUtils.lerp(0.25, 0.0, (p - 0.62) / 0.10);
+        particleMaterial.opacity = THREE.MathUtils.lerp(0.25, 0.0, (p - 0.52) / 0.10);
       } else {
         particleMaterial.opacity = 0.0;
       }
@@ -1271,9 +1165,9 @@ export default function UnifiedIrisHero({
           rotZ = 0; rotX = 0; rotY = 0;
           scale = restingScale;
           opacity = 0.0; // Macro quad covers this phase
-        } else if (p <= 0.62) {
+        } else if (p <= 0.52) {
           // Phase C: Organic Unfolding - Layers separate along 3D Z-depth as camera travels between them
-          const t = (p - 0.20) / 0.42;
+          const t = (p - 0.20) / 0.32;
           const ease = t * t * (3.0 - 2.0 * t);
           posX = sep.x * ease;
           posY = sep.y * ease;
@@ -1289,12 +1183,12 @@ export default function UnifiedIrisHero({
           const drift = Math.sin(elapsed * 0.7 + idx * 0.8) * 0.008;
           posX += drift * 0.5;
           posY += drift;
-        } else if (p <= 0.74) {
-          // Phase D: Enter the Black Pupil (0.62 -> 0.74)
+        } else if (p <= 0.62) {
+          // Phase D: Enter the Black Pupil (0.52 -> 0.62)
           // The camera approaches the central black pupil.
           // Surrounding fibres/collarette/limbus expand outward and pass beyond screen edges.
           // The central black pupil expands to cover 100% of the viewport.
-          const tPupil = (p - 0.62) / 0.12;
+          const tPupil = (p - 0.52) / 0.10;
           const easePupil = tPupil * tPupil * (3.0 - 2.0 * tPupil);
 
           if (spec.type === "pupil") {
@@ -1336,61 +1230,161 @@ export default function UnifiedIrisHero({
         material.uniforms.uHighlight.value = highlight;
       });
 
-      // ── 8. PHOTOGRAPHIC GRAIN DEVELOPMENT OUT OF DARKROOM PUPIL INTO WARM-IVORY GALLERY ──
-      // Phase E (0.72 -> 1.00): Silver halide grain and spatial exposure develop organically.
-      // - Solo artwork plate materializes during mid-exposure (devP 0.15 -> 0.70)
-      // - Heading and category tabs enter (devP 0.40 -> 0.85)
-      // - Full settlement at devP >= 0.90 -> 1.00
-      if (p <= 0.72) {
-        devUniforms.uDevProgress.value = 0.0;
-        devQuad.visible = false;
+      // ── 8. THREE EXPLICIT SCENE STATES (HERO_ACTIVE | HANDOFF_ACTIVE | GALLERY_ACTIVE) ──
+      let activeSceneState: SceneState = "HERO_ACTIVE";
+      let handoffProgress = 0.0;
+      let galleryBgColor = "rgb(9, 9, 9)";
+      let grainOpacity = 0.0;
 
+      if (p <= 0.62) {
+        // ─── STATE 1: HERO_ACTIVE ───
+        activeSceneState = "HERO_ACTIVE";
+        handoffProgress = 0.0;
+        galleryBgColor = "rgb(9, 9, 9)";
+        grainOpacity = 0.0;
+
+        // Gallery container completely dormant
         if (exposureOverlayRef.current) {
           exposureOverlayRef.current.style.visibility = "hidden";
           exposureOverlayRef.current.style.pointerEvents = "none";
+          exposureOverlayRef.current.style.backgroundColor = "transparent";
         }
         if (matchedSoloPlateRef.current) {
           matchedSoloPlateRef.current.style.opacity = "0";
+          matchedSoloPlateRef.current.style.transform = "scale(0.98)";
         }
         if (emergingGalleryHeaderRef.current && emergingCategoryBarRef.current) {
           emergingGalleryHeaderRef.current.style.opacity = "0";
+          emergingGalleryHeaderRef.current.style.transform = "translateY(16px)";
           emergingCategoryBarRef.current.style.opacity = "0";
+          emergingCategoryBarRef.current.style.transform = "translateY(16px)";
         }
-      } else {
-        devQuad.visible = true;
-        const devP = Math.min(1.0, (p - 0.72) / 0.28);
-        devUniforms.uDevProgress.value = devP;
 
+        // Hero canvas active
+        if (canvas) {
+          canvas.style.display = "block";
+          canvas.style.visibility = "visible";
+          canvas.style.opacity = "1";
+          canvas.style.pointerEvents = p <= 0.15 ? "auto" : "none";
+        }
+
+        // Restore 3D layers visibility for hero
+        masterLayerGroup.visible = true;
+        particles.visible = true;
+      } else if (p < 0.88) {
+        // ─── STATE 2: HANDOFF_ACTIVE ───
+        activeSceneState = "HANDOFF_ACTIVE";
+        const t = (p - 0.62) / 0.26;
+        handoffProgress = t;
+        const s = t * t * (3.0 - 2.0 * t); // smoothstep
+
+        // Background color: smoothly interpolate from pitch black #090909 (9,9,9) to warm ivory #F4F1EA (244,241,234)
+        const r = Math.round(9 + s * (244 - 9));
+        const g = Math.round(9 + s * (241 - 9));
+        const b = Math.round(9 + s * (234 - 9));
+        galleryBgColor = `rgb(${r}, ${g}, ${b})`;
+
+        // Subtle photographic silver grain dissolves as ivory establishes
+        grainOpacity = Math.sin(t * Math.PI) * 0.05;
+
+        // Emerging Gallery container
         if (exposureOverlayRef.current) {
           exposureOverlayRef.current.style.visibility = "visible";
-          exposureOverlayRef.current.style.pointerEvents = devP >= 0.85 ? "auto" : "none";
+          exposureOverlayRef.current.style.pointerEvents = t >= 0.80 ? "auto" : "none";
+          exposureOverlayRef.current.style.backgroundColor = galleryBgColor;
         }
 
-        // 1. Artwork Plate emerges during mid-exposure (devP 0.15 -> 0.70)
+        // Solo Artwork Plate: reveals during mid-handoff with 100% photographic contrast
         if (matchedSoloPlateRef.current) {
-          const plateP = Math.min(1.0, Math.max(0.0, (devP - 0.15) / 0.55));
-          const plateEase = plateP * plateP * (3.0 - 2.0 * plateP);
+          const plateT = Math.min(1.0, Math.max(0.0, (t - 0.10) / 0.55));
+          const plateEase = plateT * plateT * (3.0 - 2.0 * plateT);
           matchedSoloPlateRef.current.style.opacity = String(plateEase);
-          matchedSoloPlateRef.current.style.transform = `scale(${0.98 + 0.02 * plateEase})`;
+          matchedSoloPlateRef.current.style.transform = `scale(${(0.98 + 0.02 * plateEase).toFixed(4)})`;
         }
 
-        // 2. Header and Category Tabs emerge (devP 0.40 -> 0.85)
+        // Heading & Category Selector tabs: glide in smoothly
         if (emergingGalleryHeaderRef.current && emergingCategoryBarRef.current) {
-          const textP = Math.min(1.0, Math.max(0.0, (devP - 0.40) / 0.45));
-          const textEase = textP * textP * (3.0 - 2.0 * textP);
+          const textT = Math.min(1.0, Math.max(0.0, (t - 0.35) / 0.50));
+          const textEase = textT * textT * (3.0 - 2.0 * textT);
           emergingGalleryHeaderRef.current.style.opacity = String(textEase);
-          emergingGalleryHeaderRef.current.style.transform = `translateY(${(-12 * (1.0 - textEase)).toFixed(1)}px)`;
+          emergingGalleryHeaderRef.current.style.transform = `translateY(${(-10 * (1.0 - textEase)).toFixed(1)}px)`;
           emergingCategoryBarRef.current.style.opacity = String(textEase);
-          emergingCategoryBarRef.current.style.transform = `translateY(${(-8 * (1.0 - textEase)).toFixed(1)}px)`;
+          emergingCategoryBarRef.current.style.transform = `translateY(${(-6 * (1.0 - textEase)).toFixed(1)}px)`;
         }
+
+        // Hero canvas: fades out as ivory background blooms
+        if (canvas) {
+          canvas.style.display = "block";
+          canvas.style.visibility = s >= 0.99 ? "hidden" : "visible";
+          canvas.style.opacity = String(Math.max(0.0, 1.0 - s * 1.5));
+          canvas.style.pointerEvents = "none";
+        }
+
+        masterLayerGroup.visible = true;
+        particles.visible = false;
+      } else {
+        // ─── STATE 3: GALLERY_ACTIVE ───
+        activeSceneState = "GALLERY_ACTIVE";
+        handoffProgress = 1.0;
+        galleryBgColor = "#F4F1EA";
+        grainOpacity = 0.0;
+
+        // Gallery permanently established
+        if (exposureOverlayRef.current) {
+          exposureOverlayRef.current.style.visibility = "visible";
+          exposureOverlayRef.current.style.pointerEvents = "auto";
+          exposureOverlayRef.current.style.backgroundColor = "#F4F1EA";
+        }
+
+        if (matchedSoloPlateRef.current) {
+          matchedSoloPlateRef.current.style.opacity = "1";
+          matchedSoloPlateRef.current.style.transform = "scale(1)";
+        }
+
+        if (emergingGalleryHeaderRef.current && emergingCategoryBarRef.current) {
+          emergingGalleryHeaderRef.current.style.opacity = "1";
+          emergingGalleryHeaderRef.current.style.transform = "translateY(0px)";
+          emergingCategoryBarRef.current.style.opacity = "1";
+          emergingCategoryBarRef.current.style.transform = "translateY(0px)";
+        }
+
+        // Hero canvas COMPLETELY SUPPRESSED: cannot leak, re-render, or interfere
+        if (canvas) {
+          canvas.style.visibility = "hidden";
+          canvas.style.display = "none";
+          canvas.style.opacity = "0";
+          canvas.style.pointerEvents = "none";
+        }
+
+        // Suppress 3D meshes inside Three.js
+        macroQuad.visible = false;
+        masterLayerGroup.visible = false;
+        particles.visible = false;
       }
 
-      // Canvas pointer-events and visibility
-      if (canvas) {
-        canvas.style.pointerEvents = p < 0.72 ? "auto" : "none";
-        canvas.style.opacity = "1";
-        canvas.style.visibility = "visible";
+      // Update grain overlay opacity
+      if (grainOverlayRef.current) {
+        grainOverlayRef.current.style.opacity = String(grainOpacity);
       }
+
+      // Update Transition Debug Instrumentation (?transitionDebug=1)
+      const tdState = document.getElementById("td-state");
+      const tdStateBadge = document.getElementById("td-state-badge");
+      const tdScrollY = document.getElementById("td-scrolly");
+      const tdP = document.getElementById("td-p");
+      const tdT = document.getElementById("td-t");
+      const tdBg = document.getElementById("td-bg");
+      const tdCanvasOpacity = document.getElementById("td-canvas-opacity");
+      const tdGrainOpacity = document.getElementById("td-grain-opacity");
+
+      if (tdState) tdState.textContent = activeSceneState;
+      if (tdStateBadge) tdStateBadge.textContent = activeSceneState;
+      if (tdScrollY) tdScrollY.textContent = `${Math.round(window.scrollY)}px`;
+      if (tdP) tdP.textContent = `${(p * 100).toFixed(1)}%`;
+      if (tdT) tdT.textContent = `${(handoffProgress * 100).toFixed(1)}%`;
+      if (tdBg) tdBg.textContent = galleryBgColor;
+      if (tdCanvasOpacity && canvas) tdCanvasOpacity.textContent = canvas.style.opacity || "1.0";
+      if (tdGrainOpacity) tdGrainOpacity.textContent = grainOpacity.toFixed(2);
     };
 
     // ─── 10. Single Persistent Render Loop ───
@@ -1404,7 +1398,6 @@ export default function UnifiedIrisHero({
 
       // Update macro entrance uniforms during Phase 1 & 2
       macroUniforms.uTime.value = elapsed;
-      devUniforms.uTime.value = elapsed;
       macroUniforms.uIntroProgress.value = introState.progress;
       macroUniforms.uIntroZoom.value = introState.zoom;
       macroUniforms.uCameraTarget.value.set(introState.targetX, introState.targetY);
@@ -1480,7 +1473,6 @@ export default function UnifiedIrisHero({
       particleMaterial.dispose();
       fogMaterial.dispose();
       macroMaterial.dispose();
-      devMaterial.dispose();
       layerItems.forEach((item) => {
         item.material.dispose();
       });
@@ -1511,12 +1503,22 @@ export default function UnifiedIrisHero({
         <div className="absolute inset-0 bg-[#090909] z-0 pointer-events-none" />
 
         {/* Layer 1: Emerging Gallery Content (Unconstrained Natural Layout)
-            Developed by Photographic Grain Reveal, zero hard cuts or diagonal seams */}
+            Developed by Three Explicit Scene States, zero hard cuts or diagonal seams */}
         <div
           ref={exposureOverlayRef}
           className="absolute inset-0 w-full h-full overflow-hidden pointer-events-auto flex flex-col justify-between z-[25]"
-          style={{ zIndex: 25 }}
+          style={{ zIndex: 25, backgroundColor: "transparent" }}
         >
+          {/* Subtle Photographic Film Grain Overlay (Dissolves as Ivory establishes) */}
+          <div
+            ref={grainOverlayRef}
+            className="absolute inset-0 pointer-events-none z-10"
+            style={{
+              opacity: 0,
+              backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.7'/%3E%3C/svg%3E")`,
+              mixBlendMode: "overlay",
+            }}
+          />
           <ArtOfIris
             isEmbeddedInHero={true}
             soloPlateRef={matchedSoloPlateRef}
@@ -1525,20 +1527,64 @@ export default function UnifiedIrisHero({
           />
         </div>
 
-        {/* Layer 2: WebGL Iris & Photographic Development Canvas (Transparent Background, Pitch-Black Pupil, Alpha: true)
-            Renders on z-20. At Phase E, darkroom silver grain develops into warm ivory (#F4F1EA) behind gallery layout */}
+        {/* Layer 2: WebGL Iris Canvas (Transparent Background, Pitch-Black Pupil, Alpha: true)
+            Active during HERO_ACTIVE and HANDOFF_ACTIVE, suppressed during GALLERY_ACTIVE */}
         <canvas
           ref={canvasRef}
           className="absolute inset-0 w-full h-full block z-20 pointer-events-auto"
         />
 
-        {/* Layer 4: Hero Typography Overlay (Phase 1 & 2: Glides out on scroll, restored on reverse) */}
+        {/* Layer 3: Hero Typography Overlay (Phase 1 & 2: Glides out on scroll, restored on reverse) */}
         <div
           ref={heroTextRef}
           className="pointer-events-none absolute inset-0 z-30 opacity-100"
         >
           <HeroUI />
         </div>
+
+      {/* Transition Debug Telemetry HUD (?transitionDebug=1) */}
+      <div
+        ref={transitionDebugHudRef}
+        id="transition-debug-hud"
+        className="fixed top-24 left-6 z-50 bg-[#090909]/90 border border-white/20 p-4 font-mono text-[11px] text-[#FAFAF8] shadow-[0_8px_32px_rgba(0,0,0,0.8)] backdrop-blur-md max-w-xs pointer-events-none hidden rounded-lg"
+      >
+        <div className="flex items-center justify-between border-b border-white/10 pb-1.5 mb-2 font-bold tracking-wider">
+          <span className="text-white">TRANSITION DEBUG</span>
+          <span id="td-state-badge" className="text-[10px] text-amber-400 bg-amber-950/60 px-1.5 py-0.5 rounded border border-amber-500/30">
+            STATE
+          </span>
+        </div>
+        <div className="space-y-1 text-white/80">
+          <div className="flex justify-between">
+            <span className="text-white/50">Scroll Y:</span>
+            <span id="td-scrolly" className="text-white font-bold">0px</span>
+          </div>
+          <div className="flex justify-between">
+            <span className="text-white/50">Progress (p):</span>
+            <span id="td-p" className="text-white font-bold">0.0%</span>
+          </div>
+          <div className="flex justify-between">
+            <span className="text-white/50">Handoff (t):</span>
+            <span id="td-t" className="text-white">0.0%</span>
+          </div>
+          <div className="flex justify-between">
+            <span className="text-white/50">Scene State:</span>
+            <span id="td-state" className="text-emerald-400 font-bold">HERO_ACTIVE</span>
+          </div>
+          <div className="flex justify-between">
+            <span className="text-white/50">Gallery BG:</span>
+            <span id="td-bg" className="text-white">rgb(9, 9, 9)</span>
+          </div>
+          <div className="flex justify-between">
+            <span className="text-white/50">Canvas Opacity:</span>
+            <span id="td-canvas-opacity" className="text-white">1.0</span>
+          </div>
+          <div className="flex justify-between">
+            <span className="text-white/50">Grain Opacity:</span>
+            <span id="td-grain-opacity" className="text-white">0.00</span>
+          </div>
+        </div>
+      </div>
 
       {/* Pointer Debug Telemetry Overlay (?irisDebug=1) */}
       <div

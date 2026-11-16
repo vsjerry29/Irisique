@@ -175,6 +175,7 @@ export default function ArtworkStageShader({
     renderer.setSize(width, height);
     renderer.setPixelRatio(dpr);
     renderer.setClearColor(0x090909, 1.0);
+    renderer.outputColorSpace = THREE.LinearSRGBColorSpace;
     rendererRef.current = renderer;
 
     // Scene & Orthographic Camera
@@ -189,6 +190,7 @@ export default function ArtworkStageShader({
 
     Object.entries(ARTWORK_TEXTURES).forEach(([key, config]) => {
       const tex = textureLoader.load(config.src, () => {
+        tex.colorSpace = THREE.SRGBColorSpace;
         tex.minFilter = THREE.LinearFilter;
         tex.magFilter = THREE.LinearFilter;
         tex.generateMipmaps = false;

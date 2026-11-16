@@ -262,7 +262,7 @@ export default function ArtOfIris({
         ref={surfaceRef}
         className={`relative w-full ${
           isEmbeddedInHero
-            ? "h-full py-3 sm:py-5 lg:py-6 px-6 sm:px-10 md:px-14 lg:px-20 overflow-hidden flex flex-col justify-between bg-transparent"
+            ? "h-full pt-16 sm:pt-20 pb-3 sm:pb-5 px-6 sm:px-10 md:px-14 lg:px-20 overflow-hidden flex flex-col justify-between bg-transparent"
             : "min-h-screen py-20 sm:py-28 md:py-32 px-6 sm:px-10 md:px-16 lg:px-24 flex flex-col justify-between overflow-visible bg-[#F4F1EA]"
         }`}
       >
