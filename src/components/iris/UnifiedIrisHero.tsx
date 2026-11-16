@@ -15,50 +15,57 @@ if (typeof window !== "undefined") {
   gsap.registerPlugin(ScrollTrigger);
 }
 
-// ─── High-Precision Organic Aperture Mask Engine (8-Node Asymmetric Contour) ───
-function computeOrganicAperturePath(p: number, aspect: number): string {
-  if (p <= 0.10) {
-    return "M 0.5 0.5 Z";
+// ─── Codrops / Mersis Photographic Seam Transition Engine ───
+// An asymmetric diagonal seam sweeping from lower-right (u+v > 2) towards top-left (u+v < 0).
+// Perturbed by a gentle organic low-frequency wave for an authentic paper-tear / photographic edge.
+// Uncovers warm ivory `#F4F1EA` behind the iris. The iris pupil remains pitch-black (#000000) at all times.
+export function computePhotographicSeamPath(p: number): {
+  clipPath: string;
+  edgeLine: string;
+} {
+  if (p <= 0.02) {
+    return {
+      clipPath: "M 1.5 1.5 Z",
+      edgeLine: "M 1.5 1.5 Z",
+    };
   }
-  if (p >= 0.72) {
-    return "M -0.5 -0.5 L 1.5 -0.5 L 1.5 1.5 L -0.5 1.5 Z";
+  if (p >= 0.90) {
+    return {
+      clipPath: "M -0.3 -0.3 L 1.3 -0.3 L 1.3 1.3 L -0.3 1.3 Z",
+      edgeLine: "M -0.3 -0.3 Z",
+    };
   }
 
-  const t = Math.max(0, Math.min(1, (p - 0.10) / 0.62));
-  const s = t * t * (3.0 - 2.0 * t); // smoothstep
-  const baseR = s * 1.55;
+  // Smoothstep progress from 0.02 to 0.90
+  const t = (p - 0.02) / 0.88;
+  const s = t * t * (3.0 - 2.0 * t);
+  // Diagonal offset: at s=0, c=2.35 (outside lower-right); at s=1, c=-0.35 (past top-left)
+  const c = 2.35 - s * 2.70;
 
-  // 8 organic contour nodes with artistic asymmetry
-  const deltas = [1.03, 0.95, 1.06, 0.97, 1.04, 0.94, 1.07, 0.98];
-  const numPts = 8;
+  const steps = 18;
   const pts: [number, number][] = [];
 
-  for (let i = 0; i < numPts; i++) {
-    const angle = (i / numPts) * 2.0 * Math.PI - Math.PI / 2.0;
-    const r = baseR * deltas[i];
-    const rx = aspect >= 1.0 ? r / aspect : r;
-    const ry = aspect >= 1.0 ? r : r * aspect;
-    const x = 0.5 + rx * Math.cos(angle);
-    const y = 0.5 + ry * Math.sin(angle);
-    pts.push([x, y]);
+  for (let i = 0; i <= steps; i++) {
+    // sigma is orthogonal coordinate (u - v)
+    const sigma = 1.6 - (3.2 * i) / steps;
+    // Low-frequency gentle photographic edge undulation
+    const delta = 0.055 * Math.sin(sigma * 2.6 + 0.4) + 0.030 * Math.cos(sigma * 4.2);
+    const u = (c + sigma + delta) / 2.0;
+    const v = (c - sigma + delta) / 2.0;
+    pts.push([Math.round(u * 10000) / 10000, Math.round(v * 10000) / 10000]);
   }
 
-  let d = `M ${pts[0][0].toFixed(4)} ${pts[0][1].toFixed(4)}`;
-  for (let i = 0; i < numPts; i++) {
-    const pPrev = pts[(i - 1 + numPts) % numPts];
-    const pCurr = pts[i];
-    const pNext = pts[(i + 1) % numPts];
-    const pNext2 = pts[(i + 2) % numPts];
-
-    const cp1x = pCurr[0] + (pNext[0] - pPrev[0]) / 6.0;
-    const cp1y = pCurr[1] + (pNext[1] - pPrev[1]) / 6.0;
-    const cp2x = pNext[0] - (pNext2[0] - pCurr[0]) / 6.0;
-    const cp2y = pNext[1] - (pNext2[1] - pCurr[1]) / 6.0;
-
-    d += ` C ${cp1x.toFixed(4)} ${cp1y.toFixed(4)}, ${cp2x.toFixed(4)} ${cp2y.toFixed(4)}, ${pNext[0].toFixed(4)} ${pNext[1].toFixed(4)}`;
+  // Build the edge line (for the fine photographic shadow stroke)
+  let edgeLine = `M ${pts[0][0]} ${pts[0][1]}`;
+  for (let i = 1; i < pts.length; i++) {
+    edgeLine += ` L ${pts[i][0]} ${pts[i][1]}`;
   }
-  d += " Z";
-  return d;
+
+  // Build closed polygon covering bottom-right quadrant up to the seam
+  let clipPath = edgeLine;
+  clipPath += " L -0.35 1.35 L 1.35 1.35 L 1.35 -0.35 Z";
+
+  return { clipPath, edgeLine };
 }
 
 // ─── 11 Anatomical Layer Definitions ───
@@ -204,8 +211,7 @@ export default function UnifiedIrisHero({
   // Optical Exposure Stage & Handoff Refs
   const exposureOverlayRef = useRef<HTMLDivElement>(null);
   const exposureClipPathRef = useRef<SVGPathElement>(null);
-  const refractionRimPathRef = useRef<SVGPathElement>(null);
-  const refractionGlowRef = useRef<SVGGElement>(null);
+  const seamEdgeLineRef = useRef<SVGPathElement>(null);
   const matchedSoloPlateRef = useRef<HTMLDivElement>(null);
   const emergingGalleryHeaderRef = useRef<HTMLDivElement>(null);
   const emergingCategoryBarRef = useRef<HTMLDivElement>(null);
@@ -241,20 +247,21 @@ export default function UnifiedIrisHero({
     const checkIsMobile = () => width < 768;
     let isMobile = checkIsMobile();
 
-    // ─── 1. WebGL Renderer (Persistent High-Performance Stage) ───
+    // ─── 1. WebGL Renderer (Persistent High-Performance Stage with Transparent Background) ───
     const renderer = new THREE.WebGLRenderer({
       canvas,
       antialias: true,
       powerPreference: "high-performance",
-      alpha: false,
+      alpha: true, // Transparent: allows diagonal background seam to show through!
     });
     const dpr = Math.min(window.devicePixelRatio || 1, isMobile ? 1.4 : 1.85);
     renderer.setPixelRatio(dpr);
     renderer.setSize(width, height);
+    renderer.setClearColor(0x000000, 0.0);
     renderer.outputColorSpace = THREE.SRGBColorSpace;
 
     const scene = new THREE.Scene();
-    scene.background = new THREE.Color("#020304");
+    scene.background = null;
 
     // Perspective Camera: FOV 44 matches the basePlaneGeo proportion
     const camera = new THREE.PerspectiveCamera(44, width / height, 0.1, 100);
@@ -1062,7 +1069,7 @@ export default function UnifiedIrisHero({
         pin: true,
         pinSpacing: true,
         start: "top top",
-        end: "+=120%", // 120vh travel for macro pullback and seamless optical exposure handoff
+        end: () => `+=${Math.round(window.innerHeight * 0.75)}`, // Compact ~75vh scroll travel (60–85vh range)
         scrub: 0.6,   // Liquid-smooth 0.6s catchup
         invalidateOnRefresh: true,
         refreshPriority: 10,
@@ -1212,9 +1219,9 @@ export default function UnifiedIrisHero({
           scale = 1.0 + (sep.scale - 1.0) * ease;
           opacity = 1.0;
           highlight = Math.sin(ease * Math.PI) * 0.25;
-        } else if (p <= 0.72) {
+        } else if (p <= 0.65) {
           // Transformation & Consolidation: Layers draw together to match Solo plate diameter
-          const t = (p - 0.38) / 0.34;
+          const t = (p - 0.38) / 0.27;
           const ease = t * t * (3.0 - 2.0 * t);
           posX = THREE.MathUtils.lerp(sep.x, 0, ease);
           posY = THREE.MathUtils.lerp(sep.y, 0, ease);
@@ -1224,21 +1231,21 @@ export default function UnifiedIrisHero({
           rotY = THREE.MathUtils.lerp(sep.rotY, 0, ease);
           scale = THREE.MathUtils.lerp(sep.scale, 1.0, ease);
           opacity = 1.0;
-        } else if (p <= 0.90) {
-          // STATE D: Matched Artwork Handoff (0.72 - 0.90)
+        } else if (p <= 0.85) {
+          // STATE D: Matched Artwork Handoff (0.65 - 0.85)
           // WebGL stroma layers dissolve smoothly while Solo artwork plate cross-fades in
-          const t = (p - 0.72) / 0.18;
+          const t = (p - 0.65) / 0.20;
           posX = 0; posY = 0; posZ = 0;
           rotZ = 0; rotX = 0; rotY = 0;
           scale = 1.0;
           opacity = Math.max(0.0, 1.0 - t);
         } else {
-          // STATE E: Gallery Fully Established (0.90 - 1.00)
+          // STATE E: Gallery Fully Established (0.85 - 1.00)
           opacity = 0.0;
         }
 
         // Apply subtle micro-motion drift only when visible
-        if (p > 0.15 && p < 0.72) {
+        if (p > 0.15 && p < 0.65) {
           const drift = Math.sin(elapsed * 0.7 + idx * 0.8) * 0.008;
           posX += drift * 0.5;
           posY += drift;
@@ -1254,32 +1261,36 @@ export default function UnifiedIrisHero({
         material.uniforms.uRefractShift.value = refractShift;
       });
 
-      // ── Optical Exposure Stage Coordinator ──
-      const aspect = width / Math.max(height, 1);
-      const aperturePath = computeOrganicAperturePath(p, aspect);
+      // ── Asymmetric Photographic Seam Coordinator (Codrops / Mersis Transition) ──
+      const { clipPath, edgeLine } = computePhotographicSeamPath(p);
 
       if (exposureClipPathRef.current) {
-        exposureClipPathRef.current.setAttribute("d", aperturePath);
+        exposureClipPathRef.current.setAttribute("d", clipPath);
       }
-      if (refractionRimPathRef.current) {
-        refractionRimPathRef.current.setAttribute("d", aperturePath);
-      }
-
-      // Luminous Refraction Rim Opacity: peaks around p=0.35..0.45
-      if (refractionGlowRef.current) {
-        const rimOpacity =
-          p > 0.10 && p < 0.72
-            ? Math.sin(((p - 0.10) / 0.62) * Math.PI) * 0.85
-            : 0.0;
-        refractionGlowRef.current.style.opacity = rimOpacity.toFixed(3);
+      if (seamEdgeLineRef.current) {
+        seamEdgeLineRef.current.setAttribute("d", edgeLine);
       }
 
-      // STATE D: Matched Solo Artwork Plate Cross-fade (0.72 -> 0.90)
+      // Gallery Clip-path: hidden at hero start, clipped by seam during transition, completely cleared (none) when settled
+      if (exposureOverlayRef.current) {
+        if (p <= 0.02) {
+          exposureOverlayRef.current.style.visibility = "hidden";
+        } else {
+          exposureOverlayRef.current.style.visibility = "visible";
+          if (p >= 0.90) {
+            exposureOverlayRef.current.style.clipPath = "none";
+          } else {
+            exposureOverlayRef.current.style.clipPath = "url(#photographicSeamClip)";
+          }
+        }
+      }
+
+      // STATE D: Matched Solo Artwork Plate Cross-fade (0.65 -> 0.85)
       if (matchedSoloPlateRef.current) {
-        if (p <= 0.72) {
+        if (p <= 0.65) {
           matchedSoloPlateRef.current.style.opacity = "0";
-        } else if (p <= 0.90) {
-          const t = (p - 0.72) / 0.18;
+        } else if (p <= 0.85) {
+          const t = (p - 0.65) / 0.20;
           const s = t * t * (3.0 - 2.0 * t);
           matchedSoloPlateRef.current.style.opacity = s.toFixed(3);
         } else {
@@ -1287,19 +1298,19 @@ export default function UnifiedIrisHero({
         }
       }
 
-      // STATE E: Emerging Gallery Heading and Category Controls (0.90 -> 1.00)
+      // STATE E: Emerging Gallery Heading and Category Controls (0.75 -> 1.00)
       if (emergingGalleryHeaderRef.current && emergingCategoryBarRef.current) {
-        if (p <= 0.90) {
+        if (p <= 0.75) {
           emergingGalleryHeaderRef.current.style.opacity = "0";
-          emergingGalleryHeaderRef.current.style.transform = "translateY(16px)";
+          emergingGalleryHeaderRef.current.style.transform = "translateY(20px)";
           emergingCategoryBarRef.current.style.opacity = "0";
-          emergingCategoryBarRef.current.style.transform = "translateY(16px)";
+          emergingCategoryBarRef.current.style.transform = "translateY(20px)";
         } else if (p < 1.00) {
-          const t = (p - 0.90) / 0.10;
+          const t = (p - 0.75) / 0.25;
           emergingGalleryHeaderRef.current.style.opacity = t.toFixed(3);
-          emergingGalleryHeaderRef.current.style.transform = `translateY(${((1 - t) * 16).toFixed(1)}px)`;
+          emergingGalleryHeaderRef.current.style.transform = `translateY(${((1 - t) * 20).toFixed(1)}px)`;
           emergingCategoryBarRef.current.style.opacity = t.toFixed(3);
-          emergingCategoryBarRef.current.style.transform = `translateY(${((1 - t) * 16).toFixed(1)}px)`;
+          emergingCategoryBarRef.current.style.transform = `translateY(${((1 - t) * 20).toFixed(1)}px)`;
         } else {
           emergingGalleryHeaderRef.current.style.opacity = "1";
           emergingGalleryHeaderRef.current.style.transform = "translateY(0px)";
@@ -1308,9 +1319,21 @@ export default function UnifiedIrisHero({
         }
       }
 
+      // Canvas pointer-events and opacity: enabled during hero, dissolved when Solo plate settled
+      if (canvas) {
+        if (p <= 0.85) {
+          canvas.style.opacity = "1";
+          canvas.style.pointerEvents = "auto";
+        } else {
+          const tDissolve = (p - 0.85) / 0.15;
+          canvas.style.opacity = Math.max(0, 1.0 - tDissolve).toFixed(3);
+          canvas.style.pointerEvents = "none";
+        }
+      }
+
       // Interaction Availability on Gallery
       if (exposureOverlayRef.current) {
-        exposureOverlayRef.current.style.pointerEvents = p >= 0.90 ? "auto" : "none";
+        exposureOverlayRef.current.style.pointerEvents = p >= 0.85 ? "auto" : "none";
       }
     };
 
@@ -1420,75 +1443,69 @@ export default function UnifiedIrisHero({
   }, [initExperience]);
 
   return (
-    <div id="explore" className="relative w-full bg-[#020304]">
+    <div id="explore" className="relative w-full bg-[#090909]">
       <section
         ref={containerRef}
         data-section="unified-iris"
-        className={`relative z-20 w-full h-screen overflow-hidden bg-[#020304] select-none ${className}`}
+        className={`relative z-20 w-full min-h-screen overflow-visible select-none ${className}`}
       >
-      {/* Single Persistent WebGL Canvas Stage */}
-      <canvas
-        ref={canvasRef}
-        className="absolute inset-0 w-full h-full block z-0"
-      />
+        {/* Layer 0: Darkroom Background (#090909) */}
+        <div className="absolute inset-0 bg-[#090909] z-0 pointer-events-none" />
 
-      {/* Hero Typography Overlay (Phase 1 & 2: Glides out on scroll, restored on reverse) */}
-      <div
-        ref={heroTextRef}
-        className="pointer-events-none absolute inset-0 z-10 opacity-0"
-      >
-        <HeroUI />
-      </div>
-
-      {/* ─── OPTICAL EXPOSURE STAGE: Expanding Organic Aperture & Luminous Refraction Rim ─── */}
-      <svg className="absolute w-0 h-0 overflow-hidden pointer-events-none" aria-hidden="true">
-        <defs>
-          <clipPath id="opticalExposureClip" clipPathUnits="objectBoundingBox">
-            <path ref={exposureClipPathRef} d="M 0.5 0.5 Z" />
-          </clipPath>
-          <filter id="refractionGlow" x="-20%" y="-20%" width="140%" height="140%">
-            <feGaussianBlur in="SourceGraphic" stdDeviation="0.012" result="blur" />
-            <feMerge>
-              <feMergeNode in="blur" />
-              <feMergeNode in="SourceGraphic" />
-            </feMerge>
-          </filter>
-        </defs>
-      </svg>
-
-      {/* Luminous Refraction Rim Overlay */}
-      <svg
-        className="absolute inset-0 w-full h-full pointer-events-none z-25 overflow-visible"
-        viewBox="0 0 1 1"
-        preserveAspectRatio="none"
-      >
-        <g ref={refractionGlowRef} style={{ opacity: 0 }}>
-          <path
-            ref={refractionRimPathRef}
-            d="M 0.5 0.5 Z"
-            fill="none"
-            stroke="#F4F1EA"
-            strokeWidth="0.006"
-            filter="url(#refractionGlow)"
+        {/* Layer 1: Emerging Gallery Content (Unconstrained Natural Layout)
+            Clipped by Asymmetric Photographic Seam during transition, unclipped (none) at p >= 0.90 */}
+        <div
+          ref={exposureOverlayRef}
+          className="relative z-10 w-full min-h-screen pointer-events-auto flex flex-col justify-between"
+          style={{ clipPath: "url(#photographicSeamClip)" }}
+        >
+          <ArtOfIris
+            isEmbeddedInHero={true}
+            soloPlateRef={matchedSoloPlateRef}
+            headerRowRef={emergingGalleryHeaderRef}
+            categoryBarRef={emergingCategoryBarRef}
           />
-        </g>
-      </svg>
+        </div>
 
-      {/* Optical Exposure Gallery Stage: Matched-Image Handoff to Solo Art */}
-      <div
-        ref={exposureOverlayRef}
-        className="absolute inset-0 z-20 w-full h-full overflow-hidden pointer-events-none"
-        style={{
-          clipPath: "url(#opticalExposureClip)",
-        }}
-      >
-        <ArtOfIris
-          isEmbeddedInHero={true}
-          soloPlateRef={matchedSoloPlateRef}
-          headerRowRef={emergingGalleryHeaderRef}
-          categoryBarRef={emergingCategoryBarRef}
+        {/* Layer 2: SVG Seam ClipPath and Organic Shadow Line */}
+        <svg
+          className="absolute inset-0 w-full h-full pointer-events-none z-15 overflow-visible"
+          viewBox="0 0 1 1"
+          preserveAspectRatio="none"
+          aria-hidden="true"
+        >
+          <defs>
+            <clipPath id="photographicSeamClip" clipPathUnits="objectBoundingBox">
+              <path ref={exposureClipPathRef} d="M 1.5 1.5 Z" />
+            </clipPath>
+            <filter id="seamShadow" x="-20%" y="-20%" width="140%" height="140%">
+              <feDropShadow dx="-0.003" dy="0.003" stdDeviation="0.004" floodColor="#090909" floodOpacity="0.25" />
+            </filter>
+          </defs>
+          <path
+            ref={seamEdgeLineRef}
+            d="M 1.5 1.5 Z"
+            fill="none"
+            stroke="#D5D0C6"
+            strokeWidth="0.0028"
+            filter="url(#seamShadow)"
+          />
+        </svg>
+
+        {/* Layer 3: WebGL Iris Canvas (Transparent Background, Pitch-Black Pupil, Alpha: true)
+            Renders on z-20 above the background & seam, so pupil is NEVER obscured or turned white */}
+        <canvas
+          ref={canvasRef}
+          className="absolute inset-0 w-full h-screen block z-20 pointer-events-auto"
         />
-      </div>
+
+        {/* Layer 4: Hero Typography Overlay (Phase 1 & 2: Glides out on scroll, restored on reverse) */}
+        <div
+          ref={heroTextRef}
+          className="pointer-events-none absolute inset-0 z-25 opacity-0"
+        >
+          <HeroUI />
+        </div>
 
       {/* Pointer Debug Telemetry Overlay (?irisDebug=1) */}
       <div
