@@ -493,7 +493,7 @@ export default function UnifiedIrisHero({
         if (uClickProgress > 0.001 && uClickProgress < 1.0) {
           float distClick = length(uv - uClickOrigin);
           float clickWave = exp(-pow((distClick - uClickProgress * 0.35) / 0.055, 2.0)) * (1.0 - uClickProgress);
-          texColor.rgb += vec3(0.20, 0.38, 0.50) * clickWave * 0.85;
+          texColor.rgb += vec3(0.65, 0.62, 0.58) * clickWave * 0.95;
         }
 
         texColor.rgb += uHighlight * 0.25;
@@ -647,11 +647,12 @@ export default function UnifiedIrisHero({
         const centeredX = screenX - macroUniforms.uIrisOffset.value.x;
         const centeredY = screenY - macroUniforms.uIrisOffset.value.y;
 
+        // Match GLSL column-major mat2(cosR, -sinR, sinR, cosR) * centeredCoord
         const rotAngle = -macroUniforms.uScrollRotation.value;
         const cosR = Math.cos(rotAngle);
         const sinR = Math.sin(rotAngle);
-        const rotatedX = cosR * centeredX - sinR * centeredY;
-        const rotatedY = sinR * centeredX + cosR * centeredY;
+        const rotatedX = cosR * centeredX + sinR * centeredY;
+        const rotatedY = -sinR * centeredX + cosR * centeredY;
 
         const baseRadius = 0.465;
         const currentScale = Math.max(macroUniforms.uIrisScale.value, 0.05);
@@ -684,19 +685,22 @@ export default function UnifiedIrisHero({
       const hits = raycaster.intersectObjects(masterLayerGroup.children, false);
 
       if (hits.length > 0) {
-        const firstHit = hits[0];
-        const uv = firstHit.uv || new THREE.Vector2(0.5, 0.5);
-        const hitName = (firstHit.object as any).specId || "3D Stroma Layer";
-        return {
-          isHit: true,
-          ndcX,
-          ndcY,
-          screenX,
-          screenY,
-          texU: uv.x,
-          texV: uv.y,
-          hitObject: hitName,
-        };
+        for (const hit of hits) {
+          const uv = hit.uv || new THREE.Vector2(0.5, 0.5);
+          const distFromCenter = Math.hypot(uv.x - 0.5, uv.y - 0.5);
+          if (distFromCenter <= 0.50) {
+            return {
+              isHit: true,
+              ndcX,
+              ndcY,
+              screenX,
+              screenY,
+              texU: uv.x,
+              texV: uv.y,
+              hitObject: (hit.object as any).specId || "3D Stroma Layer",
+            };
+          }
+        }
       }
 
       return {
@@ -780,11 +784,15 @@ export default function UnifiedIrisHero({
     window.addEventListener("mousemove", onMouseMove);
     canvas.addEventListener("mouseleave", onMouseLeave);
 
-    // Click Ripple Impulse with Localized Origin
+    // Click Optical Impulse with Exact Localized Origin
     const triggerClickAt = (clientX: number, clientY: number) => {
       const hit = resolvePointerOnIris(clientX, clientY);
       if (!hit.isHit) {
-        // Outside the iris: do NOT trigger click reveal (Part 3 requirement)
+        // Outside the iris: do NOT trigger click reveal (click ignored)
+        if (debugEnabledRef.current) {
+          const elHit = document.getElementById("dbg-hit");
+          if (elHit) elHit.textContent = "outside (click ignored)";
+        }
         return;
       }
 
@@ -795,11 +803,21 @@ export default function UnifiedIrisHero({
         item.material.uniforms.uClickOrigin.value.set(hit.texU, hit.texV);
       });
 
+      // Update developer telemetry HUD (?irisDebug=1) immediately on click
+      if (debugEnabledRef.current) {
+        const elOrigin = document.getElementById("dbg-origin");
+        if (elOrigin) elOrigin.textContent = `${hit.texU.toFixed(3)}, ${hit.texV.toFixed(3)}`;
+        const elHit = document.getElementById("dbg-hit");
+        if (elHit) elHit.textContent = `CLICK: ${hit.hitObject}`;
+        const elReticle = document.getElementById("dbg-reticle-label");
+        if (elReticle) elReticle.textContent = `CLICK UV: (${hit.texU.toFixed(2)}, ${hit.texV.toFixed(2)})`;
+      }
+
       gsap.killTweensOf(macroUniforms.uClickProgress);
       macroUniforms.uClickProgress.value = 0.0;
       gsap.to(macroUniforms.uClickProgress, {
         value: 1.0,
-        duration: 1.25,
+        duration: 1.15,
         ease: "power2.out",
         onComplete: () => {
           macroUniforms.uClickProgress.value = 0.0;
@@ -812,13 +830,22 @@ export default function UnifiedIrisHero({
       if (target && target.closest("header, nav, button, a, [role='button'], #gallery button, #gallery a")) {
         return;
       }
+      const rect = canvas.getBoundingClientRect();
+      if (
+        e.clientX < rect.left ||
+        e.clientX > rect.right ||
+        e.clientY < rect.top ||
+        e.clientY > rect.bottom
+      ) {
+        return;
+      }
       if (introTimeline && introTimeline.progress() < 1.0 && !introTimeline.paused()) {
         introTimeline.progress(1.0);
-        return;
       }
       triggerClickAt(e.clientX, e.clientY);
     };
-    canvas.addEventListener("click", onClick);
+
+    window.addEventListener("click", onClick);
 
     // Keyboard controls
     const onKeyDown = (e: KeyboardEvent) => {
@@ -1263,7 +1290,7 @@ export default function UnifiedIrisHero({
       window.removeEventListener("resize", onResize);
       window.removeEventListener("mousemove", onMouseMove);
       canvas.removeEventListener("mouseleave", onMouseLeave);
-      canvas.removeEventListener("click", onClick);
+      window.removeEventListener("click", onClick);
       window.removeEventListener("keydown", onKeyDown);
 
       scrollTimeline.kill();

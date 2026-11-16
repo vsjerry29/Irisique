@@ -54,7 +54,7 @@ export default function HomePage() {
   };
 
   return (
-    <main className="relative bg-[#080808] text-[#F5F2EC] w-full selection:bg-neutral-800 selection:text-white">
+    <main className="relative bg-[#090909] text-[#FAFAF8] w-full selection:bg-neutral-800 selection:text-white">
       {/* ─── Global Atelier Adaptive Header ─── */}
       <Header onReplayIntro={handleReplayIntro} />
 
