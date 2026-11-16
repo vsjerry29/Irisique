@@ -7,7 +7,7 @@ import { createPortal } from "react-dom";
 import { ArrowUpRight, X } from "lucide-react";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
-import OpticalTrace from "@/components/ui/OpticalTrace";
+import OpticalThread from "@/components/motion/OpticalThread";
 
 export interface ArtworkComposition {
   id: "solo" | "couple" | "family";
@@ -19,6 +19,7 @@ export interface ArtworkComposition {
   image: string;
   aspect: string;
   maxWidthClass: string;
+  containerShape: string;
 }
 
 const COMPOSITIONS: ArtworkComposition[] = [
@@ -32,6 +33,8 @@ const COMPOSITIONS: ArtworkComposition[] = [
     image: "/assets/gallery/iris_sapphire.webp",
     aspect: "aspect-square",
     maxWidthClass: "max-w-2xl lg:max-w-3xl",
+    // Carefully masked circular photographic specimen mount: preserves deep black background & eliminates harsh square corners
+    containerShape: "rounded-full overflow-hidden bg-[#090909]",
   },
   {
     id: "couple",
@@ -43,6 +46,7 @@ const COMPOSITIONS: ArtworkComposition[] = [
     image: "/assets/couple/couple_artwork_final.webp",
     aspect: "aspect-[16/9]",
     maxWidthClass: "max-w-4xl lg:max-w-5xl",
+    containerShape: "rounded-2xl overflow-hidden bg-[#090909]",
   },
   {
     id: "family",
@@ -54,6 +58,7 @@ const COMPOSITIONS: ArtworkComposition[] = [
     image: "/assets/art/family_artwork_final.webp",
     aspect: "aspect-[16/9]",
     maxWidthClass: "max-w-5xl lg:max-w-6xl",
+    containerShape: "rounded-2xl overflow-hidden bg-[#090909]",
   },
 ];
 
@@ -65,10 +70,11 @@ export default function ArtOfIris() {
 
   const sectionRef = useRef<HTMLElement>(null);
   const surfaceRef = useRef<HTMLDivElement>(null);
+  const headerRowRef = useRef<HTMLDivElement>(null);
+  const headlineRef = useRef<HTMLHeadingElement>(null);
   const artworkStageRef = useRef<HTMLDivElement>(null);
   const activeImageRef = useRef<HTMLDivElement>(null);
   const incomingImageRef = useRef<HTMLDivElement>(null);
-  const headlineRef = useRef<HTMLHeadingElement>(null);
 
   // Accessibility refs for modal
   const triggerButtonRef = useRef<HTMLButtonElement | null>(null);
@@ -126,19 +132,20 @@ export default function ArtOfIris() {
     };
   }, [isDetailOpen]);
 
-  // ─── Choreographed Background Entrance & Parallax Travel ───
+  // ─── Choreographed Background Entrance & Clean Scroll Architecture ───
   useEffect(() => {
     if (typeof window === "undefined" || !sectionRef.current) return;
 
     gsap.registerPlugin(ScrollTrigger);
 
     const ctx = gsap.context(() => {
+      // 1. Surface entrance clip-path
       if (surfaceRef.current) {
         gsap.fromTo(
           surfaceRef.current,
           {
-            clipPath: "polygon(0% 6vw, 100% 0%, 100% 100%, 0% 100%)",
-            y: 40,
+            clipPath: "polygon(0% 4vw, 100% 0%, 100% 100%, 0% 100%)",
+            y: 30,
           },
           {
             clipPath: "polygon(0% 0%, 100% 0%, 100% 100%, 0% 100%)",
@@ -155,39 +162,43 @@ export default function ArtOfIris() {
         );
       }
 
+      // 2. Artwork Stage: strictly Opacity 1.0 (NO scrubbed opacity dimming!)
       if (artworkStageRef.current) {
         gsap.fromTo(
           artworkStageRef.current,
           {
-            y: 80,
-            scale: 0.96,
-            opacity: 0.7,
+            y: 30,
+            scale: 0.98,
           },
           {
-            y: -20,
+            y: 0,
             scale: 1.0,
-            opacity: 1.0,
-            ease: "none",
+            ease: "power2.out",
             scrollTrigger: {
               trigger: sectionRef.current,
-              start: "top 80%",
-              end: "bottom top",
-              scrub: 0.6,
+              start: "top 75%",
+              end: "top 30%",
+              scrub: 0.4,
               refreshPriority: 8,
             },
           }
         );
       }
 
-      if (headlineRef.current) {
-        gsap.to(headlineRef.current, {
-          y: -40,
-          ease: "none",
+      // 3. Deliberate Heading Entrance and Clean Exit (No partial clipping!)
+      // When the user scrolls past the top of the gallery towards the artwork stage,
+      // the header row gracefully fades out and translates upwards, exiting completely
+      // before artwork exploration takes full focus.
+      if (headerRowRef.current) {
+        gsap.to(headerRowRef.current, {
+          opacity: 0,
+          y: -24,
+          ease: "power2.out",
           scrollTrigger: {
             trigger: sectionRef.current,
-            start: "top bottom",
-            end: "bottom top",
-            scrub: 0.8,
+            start: "top -5%",
+            end: "top -35%",
+            scrub: 0.5,
             refreshPriority: 8,
           },
         });
@@ -215,6 +226,7 @@ export default function ArtOfIris() {
           setIncomingId(null);
           if (activeImageRef.current) {
             gsap.set(activeImageRef.current, { clearProps: "all" });
+            gsap.set(activeImageRef.current, { opacity: 1, filter: "none" });
           }
         },
       });
@@ -225,10 +237,9 @@ export default function ArtOfIris() {
         tl.to(
           activeImageRef.current,
           {
-            scale: 0.94,
-            opacity: 0.2,
-            filter: "blur(3px)",
-            duration: 0.45,
+            scale: 0.97,
+            opacity: 0,
+            duration: 0.32,
             ease: "power2.inOut",
           },
           0
@@ -239,20 +250,16 @@ export default function ArtOfIris() {
         tl.fromTo(
           incomingImageRef.current,
           {
-            scale: 1.08,
+            scale: 1.03,
             opacity: 0,
-            filter: "blur(6px)",
-            clipPath: "polygon(0% 100%, 100% 100%, 100% 100%, 0% 100%)",
           },
           {
             scale: 1.0,
             opacity: 1,
-            filter: "blur(0px)",
-            clipPath: "polygon(0% 0%, 100% 0%, 100% 100%, 0% 100%)",
-            duration: 0.72,
-            ease: "power3.out",
+            duration: 0.48,
+            ease: "power2.out",
           },
-          0.1
+          0.08
         );
       }
     });
@@ -265,8 +272,8 @@ export default function ArtOfIris() {
     const y = (e.clientY - rect.top) / rect.height - 0.5;
 
     gsap.to(artworkStageRef.current, {
-      rotateY: x * 5,
-      rotateX: -y * 5,
+      rotateY: x * 4,
+      rotateX: -y * 4,
       transformPerspective: 1200,
       duration: 0.4,
       ease: "power1.out",
@@ -288,20 +295,26 @@ export default function ArtOfIris() {
       ref={sectionRef}
       id="art"
       data-theme="light"
-      className="relative z-30 w-full min-h-screen bg-[#090909] text-[#090909] select-none overflow-hidden"
+      className="relative z-30 w-full min-h-screen bg-[#090909] text-[#090909] select-none"
     >
       {/* ─── Architectural Warm Paper Surface Layer ─── */}
       <div
         ref={surfaceRef}
-        className="relative w-full min-h-screen bg-[#F4F1EA] py-24 sm:py-32 md:py-40 px-6 sm:px-10 md:px-16 lg:px-24 flex flex-col justify-between"
+        className="relative w-full min-h-screen bg-[#F4F1EA] py-20 sm:py-28 md:py-32 px-6 sm:px-10 md:px-16 lg:px-24 flex flex-col justify-between overflow-visible"
       >
-        {/* Subtle Optical Trace Motif along Section Transition */}
-        <div className="absolute top-0 right-12 w-96 h-28 opacity-40 hidden md:block">
-          <OpticalTrace theme="light" variant="artwork" />
-        </div>
+        {/* ─── VISIBLE OPTICAL THREAD (Signature IRIS Motion Motif) ─── */}
+        <OpticalThread
+          variant="gallery"
+          activeComposition={incomingId || activeId}
+          theme="light"
+          className="absolute inset-0 w-full h-full pointer-events-none z-10"
+        />
 
-        {/* ─── Two Halves Asymmetrical Minimal Header ─── */}
-        <div className="max-w-7xl mx-auto w-full flex flex-col lg:flex-row lg:items-end justify-between gap-8 pb-10 sm:pb-14 border-b border-[#090909]/15">
+        {/* ─── Two Halves Asymmetrical Minimal Header Row ─── */}
+        <div
+          ref={headerRowRef}
+          className="max-w-7xl mx-auto w-full flex flex-col lg:flex-row lg:items-end justify-between gap-6 pb-8 border-b border-[#090909]/15 relative z-20 will-change-transform"
+        >
           <div className="space-y-3">
             <div className="flex items-center gap-3 text-xs font-mono tracking-[0.26em] text-[#706D68] uppercase">
               <span className="w-2 h-2 rounded-full bg-[#090909]" />
@@ -309,70 +322,78 @@ export default function ArtOfIris() {
             </div>
             <h2
               ref={headlineRef}
-              className="font-display text-5xl sm:text-7xl md:text-8xl lg:text-9xl font-bold tracking-[-0.04em] uppercase text-[#090909] leading-[0.84]"
+              className="font-display text-5xl sm:text-6xl md:text-7xl lg:text-8xl font-bold tracking-[-0.03em] uppercase text-[#090909] leading-[0.92]"
             >
               EVERY IRIS<br />IS ART.
             </h2>
           </div>
 
-          {/* Minimal Controls: Solo / Couple / Family + Explore Artwork */}
-          <div className="flex flex-col sm:flex-row sm:items-center gap-6 sm:gap-12 pt-4 lg:pt-0">
-            <div className="flex items-center gap-8 sm:gap-10">
-              {COMPOSITIONS.map((comp) => {
-                const isActive = (incomingId || activeId) === comp.id;
-                return (
-                  <button
-                    key={comp.id}
-                    data-tab={comp.label}
-                    data-composition={comp.id}
-                    onClick={() => handleSelect(comp.id)}
-                    className={`group relative text-base sm:text-lg font-sans tracking-[0.16em] uppercase transition-all duration-300 cursor-pointer ${
-                      isActive
-                        ? "font-bold text-[#090909]"
-                        : "font-normal text-[#706D68] hover:text-[#090909]"
-                    }`}
-                  >
-                    <span>{comp.label}</span>
-                    <span
-                      className={`absolute -bottom-2 left-0 w-full h-[2px] bg-[#090909] transition-all duration-300 ${
-                        isActive
-                          ? "opacity-100 scale-x-100"
-                          : "opacity-0 scale-x-0 group-hover:opacity-40 group-hover:scale-x-75"
-                      }`}
-                    />
-                  </button>
-                );
-              })}
-            </div>
-
-            <button
-              ref={triggerButtonRef}
-              data-explore-btn="true"
-              onClick={() => setIsDetailOpen(true)}
-              className="group inline-flex items-center gap-2 text-xs font-sans tracking-[0.20em] uppercase font-bold text-[#090909] hover:opacity-70 transition-opacity cursor-pointer"
-            >
-              <span>EXPLORE ARTWORK</span>
-              <ArrowUpRight className="w-4 h-4 transition-transform duration-200 group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
-            </button>
+          <div className="flex items-center gap-6 pt-2 lg:pt-0">
+            <span className="text-xs font-mono tracking-[0.20em] uppercase text-[#706D68]">
+              STUDIO ARCHIVE • 2026
+            </span>
           </div>
         </div>
 
-        {/* ─── Asymmetrical Dominant Artwork Placement (NO BOXES, NO BORDERS) ─── */}
+        {/* ─── Composition Switcher Bar (Always docked & accessible above artwork plate) ─── */}
+        <div className="max-w-7xl mx-auto w-full flex flex-col sm:flex-row sm:items-center justify-between gap-6 pt-8 pb-4 relative z-20">
+          <div className="flex items-center gap-8 sm:gap-10">
+            {COMPOSITIONS.map((comp) => {
+              const isActive = (incomingId || activeId) === comp.id;
+              return (
+                <button
+                  key={comp.id}
+                  data-tab={comp.label}
+                  data-composition={comp.id}
+                  onClick={() => handleSelect(comp.id)}
+                  className={`group relative text-base sm:text-lg font-sans tracking-[0.16em] uppercase transition-all duration-300 cursor-pointer ${
+                    isActive
+                      ? "font-bold text-[#090909]"
+                      : "font-normal text-[#706D68] hover:text-[#090909]"
+                  }`}
+                >
+                  <span>{comp.label}</span>
+                  <span
+                    className={`absolute -bottom-2 left-0 w-full h-[2px] bg-[#090909] transition-all duration-300 ${
+                      isActive
+                        ? "opacity-100 scale-x-100"
+                        : "opacity-0 scale-x-0 group-hover:opacity-40 group-hover:scale-x-75"
+                    }`}
+                  />
+                </button>
+              );
+            })}
+          </div>
+
+          <button
+            ref={triggerButtonRef}
+            data-explore-btn="true"
+            onClick={() => setIsDetailOpen(true)}
+            className="group inline-flex items-center gap-2 text-xs font-sans tracking-[0.20em] uppercase font-bold text-[#090909] hover:opacity-70 transition-opacity cursor-pointer"
+          >
+            <span>EXPLORE ARTWORK</span>
+            <ArrowUpRight className="w-4 h-4 transition-transform duration-200 group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
+          </button>
+        </div>
+
+        {/* ─── Specimen Artwork Placement: 100% Opacity, Deep Black Contrast, Zero Dimming ─── */}
         <div
-          className="max-w-7xl mx-auto w-full my-auto py-10 sm:py-16 md:py-20 flex flex-col items-center justify-center relative"
+          className="max-w-7xl mx-auto w-full my-auto py-6 sm:py-10 md:py-12 flex flex-col items-center justify-center relative z-20"
           onMouseMove={handleMouseMove}
           onMouseLeave={handleMouseLeave}
         >
           <div
             ref={artworkStageRef}
-            className={`w-full ${activeComp.maxWidthClass} relative flex flex-col items-center will-change-transform`}
+            className={`w-full ${activeComp.maxWidthClass} relative flex flex-col items-center opacity-100`}
+            style={{ opacity: 1 }}
           >
-            {/* Active Artwork Plate */}
+            {/* Active Artwork Plate: Natural photographic dark field matching popup visual fidelity */}
             <div
               ref={activeImageRef}
               data-artwork-plate="true"
               onClick={() => setIsDetailOpen(true)}
-              className={`relative w-full ${activeComp.aspect} max-h-[74vh] cursor-pointer group`}
+              className={`relative w-full ${activeComp.aspect} ${activeComp.containerShape} max-h-[72vh] cursor-pointer group`}
+              style={{ opacity: 1, filter: "none" }}
               title="Click to view artwork fullscreen"
             >
               <Image
@@ -382,6 +403,7 @@ export default function ArtOfIris() {
                 priority
                 sizes="(max-width: 1024px) 95vw, 75vw"
                 className="object-contain transition-transform duration-700 ease-out group-hover:scale-[1.015]"
+                style={{ imageRendering: "auto" }}
               />
             </div>
 
@@ -389,7 +411,7 @@ export default function ArtOfIris() {
             {incomingComp && (
               <div
                 ref={incomingImageRef}
-                className={`absolute inset-0 w-full ${incomingComp.aspect} max-h-[74vh] pointer-events-none z-10`}
+                className={`absolute inset-0 w-full ${incomingComp.aspect} ${incomingComp.containerShape} max-h-[72vh] pointer-events-none z-10`}
               >
                 <Image
                   src={incomingComp.image}
@@ -426,7 +448,7 @@ export default function ArtOfIris() {
         </div>
 
         {/* ─── Section Bottom Architecture ─── */}
-        <div className="max-w-7xl mx-auto w-full pt-6 flex items-center justify-between text-xs font-mono tracking-[0.24em] uppercase text-[#706D68] border-t border-[#090909]/15">
+        <div className="max-w-7xl mx-auto w-full pt-6 flex items-center justify-between text-xs font-mono tracking-[0.24em] uppercase text-[#706D68] border-t border-[#090909]/15 relative z-20">
           <span>ATELIER PONDICHERRY</span>
           <span>BESPOKE CAPTURE</span>
         </div>
@@ -458,12 +480,12 @@ export default function ArtOfIris() {
               <X className="w-4 h-4 text-white" />
             </button>
 
-            {/* Contemporary Art Gallery Editorial Layout: 55–60% Artwork, Sharp & Clean */}
+            {/* Contemporary Art Gallery Editorial Layout: 58% Artwork, Sharp & Clean */}
             <div
               className="relative max-w-6xl w-full flex flex-col md:flex-row items-center gap-10 md:gap-16 my-auto"
               onClick={(e) => e.stopPropagation()}
             >
-              {/* Large, Sharp Photographic Masterwork (No heavy filters or dark blurred halo) */}
+              {/* Large, Sharp Photographic Masterwork (Identical master asset pipeline) */}
               <div className="relative w-full md:w-[58%] aspect-[4/3] sm:aspect-square md:aspect-[4/3] max-h-[72vh] overflow-hidden flex items-center justify-center">
                 <Image
                   src={activeComp.image}
