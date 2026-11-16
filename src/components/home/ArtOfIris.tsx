@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { createPortal } from "react-dom";
@@ -32,7 +32,6 @@ const COMPOSITIONS: ArtworkComposition[] = [
     image: "/assets/gallery/iris_sapphire.webp",
     aspect: "aspect-square",
     maxWidthClass: "max-w-2xl lg:max-w-3xl",
-    // Carefully masked circular photographic specimen mount: preserves deep black background & eliminates harsh square corners
     containerShape: "rounded-full overflow-hidden bg-[#090909]",
   },
   {
@@ -61,7 +60,21 @@ const COMPOSITIONS: ArtworkComposition[] = [
   },
 ];
 
-export default function ArtOfIris() {
+const COMP_ORDER: Record<string, number> = { solo: 0, couple: 1, family: 2 };
+
+export interface ArtOfIrisProps {
+  isEmbeddedInHero?: boolean;
+  soloPlateRef?: React.RefObject<HTMLDivElement | null>;
+  headerRowRef?: React.RefObject<HTMLDivElement | null>;
+  categoryBarRef?: React.RefObject<HTMLDivElement | null>;
+}
+
+export default function ArtOfIris({
+  isEmbeddedInHero = false,
+  soloPlateRef: externalSoloPlateRef,
+  headerRowRef: externalHeaderRowRef,
+  categoryBarRef: externalCategoryBarRef,
+}: ArtOfIrisProps = {}) {
   const [activeId, setActiveId] = useState<"solo" | "couple" | "family">("solo");
   const [incomingId, setIncomingId] = useState<"solo" | "couple" | "family" | null>(null);
   const [isDetailOpen, setIsDetailOpen] = useState(false);
@@ -69,11 +82,38 @@ export default function ArtOfIris() {
 
   const sectionRef = useRef<HTMLElement>(null);
   const surfaceRef = useRef<HTMLDivElement>(null);
-  const headerRowRef = useRef<HTMLDivElement>(null);
+  const internalHeaderRowRef = useRef<HTMLDivElement>(null);
+  const internalCategoryBarRef = useRef<HTMLDivElement>(null);
   const headlineRef = useRef<HTMLHeadingElement>(null);
   const artworkStageRef = useRef<HTMLDivElement>(null);
   const activeImageRef = useRef<HTMLDivElement>(null);
   const incomingImageRef = useRef<HTMLDivElement>(null);
+
+  const setHeaderRowRef = useCallback((node: HTMLDivElement | null) => {
+    internalHeaderRowRef.current = node;
+    if (externalHeaderRowRef) {
+      (externalHeaderRowRef as React.MutableRefObject<HTMLDivElement | null>).current = node;
+    }
+  }, [externalHeaderRowRef]);
+
+  const setCategoryBarRef = useCallback((node: HTMLDivElement | null) => {
+    internalCategoryBarRef.current = node;
+    if (externalCategoryBarRef) {
+      (externalCategoryBarRef as React.MutableRefObject<HTMLDivElement | null>).current = node;
+    }
+  }, [externalCategoryBarRef]);
+
+  const setSoloPlateRef = useCallback((node: HTMLDivElement | null) => {
+    activeImageRef.current = node;
+    if (externalSoloPlateRef) {
+      (externalSoloPlateRef as React.MutableRefObject<HTMLDivElement | null>).current = node;
+    }
+  }, [externalSoloPlateRef]);
+
+  // Hover preview debounce timer
+  const hoverTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const activeIdRef = useRef<"solo" | "couple" | "family">(activeId);
+  activeIdRef.current = activeId;
 
   // Accessibility refs for modal
   const triggerButtonRef = useRef<HTMLButtonElement | null>(null);
@@ -87,6 +127,9 @@ export default function ArtOfIris() {
 
   useEffect(() => {
     setMounted(true);
+    return () => {
+      if (hoverTimerRef.current) clearTimeout(hoverTimerRef.current);
+    };
   }, []);
 
   // ─── Modal Accessibility: Scroll Lock, Focus Trap & Escape Key ───
@@ -96,7 +139,6 @@ export default function ArtOfIris() {
     const originalOverflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";
 
-    // Auto-focus close button
     setTimeout(() => {
       closeButtonRef.current?.focus();
     }, 50);
@@ -131,65 +173,16 @@ export default function ArtOfIris() {
     };
   }, [isDetailOpen]);
 
-  // ─── Choreographed Background Entrance & Clean Scroll Architecture ───
+  // ─── Clean Header Exit on Deep Scroll (No clipping) ───
   useEffect(() => {
     if (typeof window === "undefined" || !sectionRef.current) return;
 
     gsap.registerPlugin(ScrollTrigger);
 
     const ctx = gsap.context(() => {
-      // 1. Surface entrance clip-path
-      if (surfaceRef.current) {
-        gsap.fromTo(
-          surfaceRef.current,
-          {
-            clipPath: "polygon(0% 4vw, 100% 0%, 100% 100%, 0% 100%)",
-            y: 30,
-          },
-          {
-            clipPath: "polygon(0% 0%, 100% 0%, 100% 100%, 0% 100%)",
-            y: 0,
-            ease: "none",
-            scrollTrigger: {
-              trigger: sectionRef.current,
-              start: "top bottom",
-              end: "top 30%",
-              scrub: 0.5,
-              refreshPriority: 8,
-            },
-          }
-        );
-      }
-
-      // 2. Artwork Stage: strictly Opacity 1.0 (NO scrubbed opacity dimming!)
-      if (artworkStageRef.current) {
-        gsap.fromTo(
-          artworkStageRef.current,
-          {
-            y: 30,
-            scale: 0.98,
-          },
-          {
-            y: 0,
-            scale: 1.0,
-            ease: "power2.out",
-            scrollTrigger: {
-              trigger: sectionRef.current,
-              start: "top 75%",
-              end: "top 30%",
-              scrub: 0.4,
-              refreshPriority: 8,
-            },
-          }
-        );
-      }
-
-      // 3. Deliberate Heading Entrance and Clean Exit (No partial clipping!)
-      // When the user scrolls past the top of the gallery towards the artwork stage,
-      // the header row gracefully fades out and translates upwards, exiting completely
-      // before artwork exploration takes full focus.
-      if (headerRowRef.current) {
-        gsap.to(headerRowRef.current, {
+      // Clean header row fade-out when scrolling down towards Collection
+      if (internalHeaderRowRef.current) {
+        gsap.to(internalHeaderRowRef.current, {
           opacity: 0,
           y: -24,
           ease: "power2.out",
@@ -207,63 +200,102 @@ export default function ArtOfIris() {
     return () => ctx.revert();
   }, []);
 
-  // ─── Responsive & Interruptible Masked Composition Switch ───
-  const handleSelect = (id: "solo" | "couple" | "family") => {
-    if (id === activeId && !incomingId) return;
-    if (id === incomingId) return;
+  // ─── Directional & Interruptible Masked Composition Transition ───
+  const triggerTransition = useCallback((targetId: "solo" | "couple" | "family") => {
+    if (targetId === activeIdRef.current && !incomingId) return;
 
     if (transitionTimelineRef.current) {
       transitionTimelineRef.current.kill();
     }
 
-    setIncomingId(id);
+    const currentOrder = COMP_ORDER[activeIdRef.current] ?? 0;
+    const targetOrder = COMP_ORDER[targetId] ?? 0;
+    const isMovingRight = targetOrder >= currentOrder;
+
+    setIncomingId(targetId);
 
     requestAnimationFrame(() => {
       const tl = gsap.timeline({
         onComplete: () => {
-          setActiveId(id);
+          setActiveId(targetId);
           setIncomingId(null);
           if (activeImageRef.current) {
             gsap.set(activeImageRef.current, { clearProps: "all" });
-            gsap.set(activeImageRef.current, { opacity: 1, filter: "none" });
+            gsap.set(activeImageRef.current, { opacity: 1, filter: "none", x: 0 });
           }
         },
       });
 
       transitionTimelineRef.current = tl;
 
+      // 1. Existing artwork: restrained directional spatial shift & soft exit
       if (activeImageRef.current) {
         tl.to(
           activeImageRef.current,
           {
+            x: isMovingRight ? -24 : 24,
             scale: 0.97,
             opacity: 0,
-            duration: 0.32,
+            duration: 0.38,
             ease: "power2.inOut",
           },
           0
         );
       }
 
+      // 2. Incoming artwork: directional entrance with smooth settling inertia
       if (incomingImageRef.current) {
         tl.fromTo(
           incomingImageRef.current,
           {
+            x: isMovingRight ? 28 : -28,
             scale: 1.03,
             opacity: 0,
           },
           {
+            x: 0,
             scale: 1.0,
             opacity: 1,
-            duration: 0.48,
+            duration: 0.52,
             ease: "power2.out",
           },
-          0.08
+          0.06
         );
       }
     });
+  }, [incomingId]);
+
+  // ─── Primary Hover Preview Handlers (Debounced 65ms) ───
+  const handleTabMouseEnter = (id: "solo" | "couple" | "family") => {
+    if (hoverTimerRef.current) clearTimeout(hoverTimerRef.current);
+    hoverTimerRef.current = setTimeout(() => {
+      triggerTransition(id);
+    }, 65);
   };
 
+  const handleTabMouseLeave = () => {
+    // Clear debounce timer if cursor left quickly
+    if (hoverTimerRef.current) clearTimeout(hoverTimerRef.current);
+    // Note: Do NOT reset artwork on mouse leave — keep most recently previewed artwork visible!
+  };
+
+  const handleTabClick = (id: "solo" | "couple" | "family") => {
+    if (hoverTimerRef.current) clearTimeout(hoverTimerRef.current);
+    triggerTransition(id);
+  };
+
+  const handleTabFocus = (id: "solo" | "couple" | "family") => {
+    triggerTransition(id);
+  };
+
+  const handleTabKeyDown = (e: React.KeyboardEvent, id: "solo" | "couple" | "family") => {
+    if (e.key === "Enter" || e.key === " ") {
+      e.preventDefault();
+      triggerTransition(id);
+    }
+  };
+
+  // Subtle 3D mouse parallax on artwork stage
   const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
     if (!artworkStageRef.current) return;
     const rect = artworkStageRef.current.getBoundingClientRect();
@@ -271,8 +303,8 @@ export default function ArtOfIris() {
     const y = (e.clientY - rect.top) / rect.height - 0.5;
 
     gsap.to(artworkStageRef.current, {
-      rotateY: x * 4,
-      rotateX: -y * 4,
+      rotateY: x * 3.5,
+      rotateX: -y * 3.5,
       transformPerspective: 1200,
       duration: 0.4,
       ease: "power1.out",
@@ -294,17 +326,18 @@ export default function ArtOfIris() {
       ref={sectionRef}
       id="art"
       data-theme="light"
-      className="relative z-30 w-full min-h-screen bg-[#090909] text-[#090909] select-none"
+      className="relative z-30 w-full min-h-screen bg-[#F4F1EA] text-[#090909] select-none"
     >
-      {/* ─── Architectural Warm Paper Surface Layer ─── */}
+      {/* ─── Architectural Warm Paper Surface Layer (Zero harsh horizontal cuts) ─── */}
       <div
         ref={surfaceRef}
         className="relative w-full min-h-screen bg-[#F4F1EA] py-20 sm:py-28 md:py-32 px-6 sm:px-10 md:px-16 lg:px-24 flex flex-col justify-between overflow-visible"
       >
         {/* ─── Two Halves Asymmetrical Minimal Header Row ─── */}
         <div
-          ref={headerRowRef}
+          ref={setHeaderRowRef}
           className="max-w-7xl mx-auto w-full flex flex-col lg:flex-row lg:items-end justify-between gap-6 pb-8 border-b border-[#090909]/15 relative z-20 will-change-transform"
+          style={isEmbeddedInHero ? { opacity: 0, transform: "translateY(16px)" } : undefined}
         >
           <div className="space-y-3">
             <div className="flex items-center gap-3 text-xs font-mono tracking-[0.26em] text-[#706D68] uppercase">
@@ -326,8 +359,12 @@ export default function ArtOfIris() {
           </div>
         </div>
 
-        {/* ─── Composition Switcher Bar (Always docked & accessible above artwork plate) ─── */}
-        <div className="max-w-7xl mx-auto w-full flex flex-col sm:flex-row sm:items-center justify-between gap-6 pt-8 pb-4 relative z-20">
+        {/* ─── Composition Switcher Bar (HOVER TO PREVIEW on Desktop, Tap on Mobile) ─── */}
+        <div
+          ref={setCategoryBarRef}
+          className="max-w-7xl mx-auto w-full flex flex-col sm:flex-row sm:items-center justify-between gap-6 pt-8 pb-4 relative z-20 will-change-transform"
+          style={isEmbeddedInHero ? { opacity: 0, transform: "translateY(16px)" } : undefined}
+        >
           <div className="flex items-center gap-8 sm:gap-10">
             {COMPOSITIONS.map((comp) => {
               const isActive = (incomingId || activeId) === comp.id;
@@ -336,8 +373,14 @@ export default function ArtOfIris() {
                   key={comp.id}
                   data-tab={comp.label}
                   data-composition={comp.id}
-                  onClick={() => handleSelect(comp.id)}
-                  className={`group relative text-base sm:text-lg font-sans tracking-[0.16em] uppercase transition-all duration-300 cursor-pointer ${
+                  onClick={() => handleTabClick(comp.id)}
+                  onPointerEnter={() => handleTabMouseEnter(comp.id)}
+                  onMouseEnter={() => handleTabMouseEnter(comp.id)}
+                  onMouseLeave={handleTabMouseLeave}
+                  onFocus={() => handleTabFocus(comp.id)}
+                  onKeyDown={(e) => handleTabKeyDown(e, comp.id)}
+                  aria-pressed={isActive}
+                  className={`group relative py-2 text-base sm:text-lg font-sans tracking-[0.16em] uppercase transition-all duration-300 cursor-pointer focus:outline-none focus-visible:ring-1 focus-visible:ring-[#090909] ${
                     isActive
                       ? "font-bold text-[#090909]"
                       : "font-normal text-[#706D68] hover:text-[#090909]"
@@ -345,7 +388,7 @@ export default function ArtOfIris() {
                 >
                   <span>{comp.label}</span>
                   <span
-                    className={`absolute -bottom-2 left-0 w-full h-[2px] bg-[#090909] transition-all duration-300 ${
+                    className={`absolute bottom-0 left-0 w-full h-[2px] bg-[#090909] transition-all duration-300 ${
                       isActive
                         ? "opacity-100 scale-x-100"
                         : "opacity-0 scale-x-0 group-hover:opacity-40 group-hover:scale-x-75"
@@ -356,13 +399,15 @@ export default function ArtOfIris() {
             })}
           </div>
 
+          {/* Explore Artwork Button: Opens fullscreen modal for the currently active/hovered preview */}
           <button
             ref={triggerButtonRef}
             data-explore-btn="true"
             onClick={() => setIsDetailOpen(true)}
-            className="group inline-flex items-center gap-2 text-xs font-sans tracking-[0.20em] uppercase font-bold text-[#090909] hover:opacity-70 transition-opacity cursor-pointer"
+            className="group inline-flex items-center gap-2 text-xs font-sans tracking-[0.20em] uppercase font-bold text-[#090909] hover:opacity-70 transition-opacity cursor-pointer focus:outline-none focus-visible:ring-1 focus-visible:ring-[#090909]"
+            title={`Explore details for ${activeComp.title}`}
           >
-            <span>EXPLORE ARTWORK</span>
+            <span>EXPLORE ARTWORK [{activeComp.label}]</span>
             <ArrowUpRight className="w-4 h-4 transition-transform duration-200 group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
           </button>
         </div>
@@ -375,16 +420,16 @@ export default function ArtOfIris() {
         >
           <div
             ref={artworkStageRef}
-            className={`w-full ${activeComp.maxWidthClass} relative flex flex-col items-center opacity-100`}
+            className={`w-full ${activeComp.maxWidthClass} relative flex flex-col items-center opacity-100 will-change-transform`}
             style={{ opacity: 1 }}
           >
-            {/* Active Artwork Plate: Natural photographic dark field matching popup visual fidelity */}
+            {/* Active Artwork Plate */}
             <div
-              ref={activeImageRef}
+              ref={setSoloPlateRef}
               data-artwork-plate="true"
               onClick={() => setIsDetailOpen(true)}
               className={`relative w-full ${activeComp.aspect} ${activeComp.containerShape} max-h-[72vh] cursor-pointer group`}
-              style={{ opacity: 1, filter: "none" }}
+              style={{ opacity: isEmbeddedInHero ? 0 : 1, filter: "none" }}
               title="Click to view artwork fullscreen"
             >
               <Image
@@ -398,7 +443,7 @@ export default function ArtOfIris() {
               />
             </div>
 
-            {/* Incoming Artwork Plate during Transition */}
+            {/* Incoming Artwork Plate during Directional Transition */}
             {incomingComp && (
               <div
                 ref={incomingImageRef}
@@ -445,7 +490,7 @@ export default function ArtOfIris() {
         </div>
       </div>
 
-      {/* ─── REDESIGNED ARTWORK POPUP: Option A — Solid Black Gallery Surface ─── */}
+      {/* ─── REDESIGNED ARTWORK POPUP: Solid Black Gallery Surface for Currently Active Preview ─── */}
       {isDetailOpen && mounted && typeof document !== "undefined" &&
         createPortal(
           <div
@@ -476,7 +521,7 @@ export default function ArtOfIris() {
               className="relative max-w-6xl w-full flex flex-col md:flex-row items-center gap-10 md:gap-16 my-auto"
               onClick={(e) => e.stopPropagation()}
             >
-              {/* Large, Sharp Photographic Masterwork (Identical master asset pipeline) */}
+              {/* Large, Sharp Photographic Masterwork */}
               <div className="relative w-full md:w-[58%] aspect-[4/3] sm:aspect-square md:aspect-[4/3] max-h-[72vh] overflow-hidden flex items-center justify-center">
                 <Image
                   src={activeComp.image}
@@ -488,7 +533,7 @@ export default function ArtOfIris() {
                 />
               </div>
 
-              {/* Minimal Editorial Information (Guaranteed 100% High-Contrast Legibility) */}
+              {/* Minimal Editorial Information */}
               <div className="w-full md:w-[42%] flex flex-col items-start gap-6">
                 <div>
                   <span className="text-xs font-mono tracking-[0.24em] uppercase text-[#D8D4CC]/80 block mb-2">

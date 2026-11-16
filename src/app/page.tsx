@@ -6,7 +6,6 @@ import { ScrollTrigger } from "gsap/ScrollTrigger";
 import Header from "@/components/layout/Header";
 import UnifiedIrisHero from "@/components/iris/UnifiedIrisHero";
 import OpticalTraceSystem from "@/components/motion/OpticalTraceSystem";
-import ArtOfIris from "@/components/home/ArtOfIris";
 import ProductTransformation from "@/components/home/ProductTransformation";
 import ExperienceSection from "@/components/home/ExperienceSection";
 import BookingInvitation from "@/components/home/BookingInvitation";
@@ -59,16 +58,13 @@ export default function HomePage() {
       {/* ─── Global Atelier Adaptive Header ─── */}
       <Header onReplayIntro={handleReplayIntro} />
 
-      {/* ─── 01: CINEMATIC DISCOVERY (Unified WebGL Macro & Stroma Travel) ─── */}
-      <UnifiedIrisHero />
-
-      {/* ─── POST-HERO EDITORIAL DOMAIN: Continuous Page-Spanning Optical Trace 2.0 ─── */}
+      {/* ─── CONTINUOUS EDITORIAL DOMAIN: Page-Spanning Optical Trace 2.0 ─── */}
       <div id="post-hero-system" className="relative w-full overflow-hidden">
         {/* ─── THE OPTICAL TRACE 2.0 (Full-Page Liquid Motion System) ─── */}
         <OpticalTraceSystem />
 
-        {/* ─── 02: THE ART OF IRIS (Curated Museum Compositions: Solo / Couple / Family) ─── */}
-        <ArtOfIris />
+        {/* ─── 01 & 02: CINEMATIC DISCOVERY & THE ART OF IRIS (One Continuous Visual Journey) ─── */}
+        <UnifiedIrisHero />
 
         {/* ─── 03: THE COLLECTION (Continuous Product Train on Warm Neutral Surfaces) ─── */}
         <ProductTransformation />

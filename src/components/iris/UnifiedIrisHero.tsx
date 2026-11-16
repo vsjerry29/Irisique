@@ -9,9 +9,56 @@ import {
   irisLabFragmentShader,
 } from "../iris-lab/shaders.glsl";
 import HeroUI from "./HeroUI";
+import ArtOfIris from "../home/ArtOfIris";
 
 if (typeof window !== "undefined") {
   gsap.registerPlugin(ScrollTrigger);
+}
+
+// ─── High-Precision Organic Aperture Mask Engine (8-Node Asymmetric Contour) ───
+function computeOrganicAperturePath(p: number, aspect: number): string {
+  if (p <= 0.10) {
+    return "M 0.5 0.5 Z";
+  }
+  if (p >= 0.72) {
+    return "M -0.5 -0.5 L 1.5 -0.5 L 1.5 1.5 L -0.5 1.5 Z";
+  }
+
+  const t = Math.max(0, Math.min(1, (p - 0.10) / 0.62));
+  const s = t * t * (3.0 - 2.0 * t); // smoothstep
+  const baseR = s * 1.55;
+
+  // 8 organic contour nodes with artistic asymmetry
+  const deltas = [1.03, 0.95, 1.06, 0.97, 1.04, 0.94, 1.07, 0.98];
+  const numPts = 8;
+  const pts: [number, number][] = [];
+
+  for (let i = 0; i < numPts; i++) {
+    const angle = (i / numPts) * 2.0 * Math.PI - Math.PI / 2.0;
+    const r = baseR * deltas[i];
+    const rx = aspect >= 1.0 ? r / aspect : r;
+    const ry = aspect >= 1.0 ? r : r * aspect;
+    const x = 0.5 + rx * Math.cos(angle);
+    const y = 0.5 + ry * Math.sin(angle);
+    pts.push([x, y]);
+  }
+
+  let d = `M ${pts[0][0].toFixed(4)} ${pts[0][1].toFixed(4)}`;
+  for (let i = 0; i < numPts; i++) {
+    const pPrev = pts[(i - 1 + numPts) % numPts];
+    const pCurr = pts[i];
+    const pNext = pts[(i + 1) % numPts];
+    const pNext2 = pts[(i + 2) % numPts];
+
+    const cp1x = pCurr[0] + (pNext[0] - pPrev[0]) / 6.0;
+    const cp1y = pCurr[1] + (pNext[1] - pPrev[1]) / 6.0;
+    const cp2x = pNext[0] - (pNext2[0] - pCurr[0]) / 6.0;
+    const cp2y = pNext[1] - (pNext2[1] - pCurr[1]) / 6.0;
+
+    d += ` C ${cp1x.toFixed(4)} ${cp1y.toFixed(4)}, ${cp2x.toFixed(4)} ${cp2y.toFixed(4)}, ${pNext[0].toFixed(4)} ${pNext[1].toFixed(4)}`;
+  }
+  d += " Z";
+  return d;
 }
 
 // ─── 11 Anatomical Layer Definitions ───
@@ -153,6 +200,15 @@ export default function UnifiedIrisHero({
   const debugReticleRef = useRef<HTMLDivElement>(null);
   const debugEnabledRef = useRef(false);
   const cleanupRef = useRef<(() => void) | null>(null);
+
+  // Optical Exposure Stage & Handoff Refs
+  const exposureOverlayRef = useRef<HTMLDivElement>(null);
+  const exposureClipPathRef = useRef<SVGPathElement>(null);
+  const refractionRimPathRef = useRef<SVGPathElement>(null);
+  const refractionGlowRef = useRef<SVGGElement>(null);
+  const matchedSoloPlateRef = useRef<HTMLDivElement>(null);
+  const emergingGalleryHeaderRef = useRef<HTMLDivElement>(null);
+  const emergingCategoryBarRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -1006,7 +1062,7 @@ export default function UnifiedIrisHero({
         pin: true,
         pinSpacing: true,
         start: "top top",
-        end: "+=200%", // 200vh travel for macro pullback and stroma layer journey
+        end: "+=120%", // 120vh travel for macro pullback and seamless optical exposure handoff
         scrub: 0.6,   // Liquid-smooth 0.6s catchup
         invalidateOnRefresh: true,
         refreshPriority: 10,
@@ -1047,36 +1103,39 @@ export default function UnifiedIrisHero({
     // ─── 9. Continuous Frame Evaluator ───
     const evaluateScene = (p: number, elapsed: number) => {
       const mobile = isMobile;
-      const camCurve = mobile ? camCurveMobile : camCurveDesktop;
-      const targetCurve = mobile ? targetCurveMobile : targetCurveDesktop;
 
-      // ── PHASE 02: Scroll Activation (0% – 15%) ──
-      // Clockwise rotation begins, iris remains visible, living motion active
-      const scrollRotation = p * THREE.MathUtils.degToRad(70);
+      // ── PHASE 01 & 02: Scroll Activation & Controlled Alignment ──
+      // Controlled rotation that straightens towards frontal orientation as exposure expands
+      let scrollRotation = 0;
+      if (p <= 0.38) {
+        scrollRotation = (p / 0.38) * THREE.MathUtils.degToRad(35);
+      } else if (p <= 0.72) {
+        const t = (p - 0.38) / 0.34;
+        scrollRotation = THREE.MathUtils.lerp(THREE.MathUtils.degToRad(35), 0, t);
+      } else {
+        scrollRotation = 0;
+      }
       macroUniforms.uScrollRotation.value = scrollRotation;
       masterLayerGroup.rotation.z = -scrollRotation;
 
       // Camera coordinates:
-      // When p <= 0.15: Camera is centered at (0, 0, 6.2) with gentle hover parallax
-      // When p > 0.15: Camera moves along continuous 3D spline
+      // Frontal centering aligns perfectly with the Solo specimen artwork plate center
       if (p <= 0.15) {
         const t = p / 0.15;
         const camZ = THREE.MathUtils.lerp(mobile ? 7.2 : 6.2, mobile ? 6.8 : 5.8, t);
         camera.position.set(mouse.x * 0.05, -mouse.y * 0.04, camZ);
         camera.lookAt(0, 0, 0);
+      } else if (p <= 0.72) {
+        const t = (p - 0.15) / 0.57;
+        const camZ = THREE.MathUtils.lerp(mobile ? 6.8 : 5.8, mobile ? 7.0 : 6.6, t);
+        camera.position.set(mouse.x * 0.05 * (1 - t), -mouse.y * 0.04 * (1 - t), camZ);
+        camera.lookAt(0, 0, 0);
       } else {
-        const camProgress = (p - 0.15) / 0.85; // [0..1]
-        const camPos = camCurve.getPointAt(camProgress);
-        const camTarget = targetCurve.getPointAt(camProgress);
-
-        camera.position.x = camPos.x + mouse.x * 0.08;
-        camera.position.y = camPos.y - mouse.y * 0.06;
-        camera.position.z = camPos.z;
-        camera.lookAt(camTarget.x + mouse.x * 0.03, camTarget.y - mouse.y * 0.02, camTarget.z);
+        camera.position.set(0, 0, mobile ? 7.0 : 6.6);
+        camera.lookAt(0, 0, 0);
       }
 
-      // ── PHASE 03: Seamless Layer Transition & Organic Unfolding (15% – 40%) ──
-      // Macro shader quad smoothly cross-fades into 11 aligned 3D photographic layers (15% - 25%)
+      // ── Macro shader quad smoothly cross-fades into 11 aligned 3D photographic layers (15% - 25%) ──
       let macroQuadOpacity = 1.0;
       if (p > 0.15 && p <= 0.25) {
         macroQuadOpacity = 1.0 - (p - 0.15) / 0.10;
@@ -1091,35 +1150,32 @@ export default function UnifiedIrisHero({
       if (p <= 0.15) {
         fogDensity = THREE.MathUtils.lerp(0.02, 0.04, p / 0.15);
       } else if (p <= 0.40) {
-        fogDensity = THREE.MathUtils.lerp(0.04, 0.08, (p - 0.15) / 0.25);
-      } else if (p <= 0.75) {
-        fogDensity = THREE.MathUtils.lerp(0.08, 0.12, (p - 0.40) / 0.35);
-      } else if (p <= 0.84) {
-        fogDensity = THREE.MathUtils.lerp(0.12, 0.05, (p - 0.75) / 0.09);
+        fogDensity = THREE.MathUtils.lerp(0.04, 0.07, (p - 0.15) / 0.25);
+      } else if (p <= 0.65) {
+        fogDensity = THREE.MathUtils.lerp(0.07, 0.02, (p - 0.40) / 0.25);
       } else {
-        const t = Math.min(1.0, (p - 0.84) / 0.14);
-        fogDensity = Math.max(0.0, THREE.MathUtils.lerp(0.05, 0.0, t));
+        fogDensity = 0.0;
       }
       fogMaterial.uniforms.uDensity.value = fogDensity;
       fogMaterial.uniforms.uTime.value = elapsed;
 
-      // ── Optical Refraction Event (at 72% – 78%) ──
+      // ── Optical Refraction Event (at 25% – 50% during aperture expansion) ──
       let refractShift = 0.0;
       let exposureLift = 0.0;
-      if (p >= 0.71 && p <= 0.79) {
-        const mid = 0.75;
-        const dist = Math.abs(p - mid) / 0.04;
+      if (p >= 0.20 && p <= 0.55) {
+        const mid = 0.375;
+        const dist = Math.abs(p - mid) / 0.175;
         const bell = 0.5 + 0.5 * Math.cos(dist * Math.PI);
-        refractShift = bell * 0.0022;
-        exposureLift = bell * 0.038;
+        refractShift = bell * 0.0018;
+        exposureLift = bell * 0.030;
       }
       fogMaterial.uniforms.uRefractShift.value = refractShift;
       fogMaterial.uniforms.uExposure.value = exposureLift;
 
       // ── Particles Animation & Exit Fade ──
       particleMaterial.uniforms.uTime.value = elapsed;
-      if (p > 0.84) {
-        const tPart = Math.min(1.0, (p - 0.84) / 0.14);
+      if (p > 0.50) {
+        const tPart = Math.min(1.0, (p - 0.50) / 0.20);
         particleMaterial.opacity = THREE.MathUtils.lerp(0.7, 0.0, tPart);
       } else {
         particleMaterial.opacity = 0.7;
@@ -1129,7 +1185,6 @@ export default function UnifiedIrisHero({
       layerItems.forEach((item, idx) => {
         const { mesh, spec, material } = item;
         const sep = spec.sepOffset;
-        const fin = spec.finalOffset;
 
         let posX = 0, posY = 0, posZ = 0;
         let rotZ = 0, rotX = 0, rotY = 0;
@@ -1156,54 +1211,35 @@ export default function UnifiedIrisHero({
           rotY = sep.rotY * ease;
           scale = 1.0 + (sep.scale - 1.0) * ease;
           opacity = 1.0;
+          highlight = Math.sin(ease * Math.PI) * 0.25;
         } else if (p <= 0.72) {
-          // Immersion: Camera travels forward between separated layers
+          // Transformation & Consolidation: Layers draw together to match Solo plate diameter
           const t = (p - 0.38) / 0.34;
-          posX = THREE.MathUtils.lerp(sep.x, (sep.x + fin.x) * 0.5, t);
-          posY = THREE.MathUtils.lerp(sep.y, (sep.y + fin.y) * 0.5, t);
-          posZ = THREE.MathUtils.lerp(sep.z, (sep.z + fin.z) * 0.45, t);
-          rotZ = THREE.MathUtils.lerp(sep.rotZ, (sep.rotZ + fin.rotZ) * 0.5, t);
-          rotX = THREE.MathUtils.lerp(sep.rotX, (sep.rotX + fin.rotX) * 0.5, t);
-          rotY = THREE.MathUtils.lerp(sep.rotY, (sep.rotY + fin.rotY) * 0.5, t);
-          scale = THREE.MathUtils.lerp(sep.scale, (sep.scale + fin.scale) * 0.5, t);
+          const ease = t * t * (3.0 - 2.0 * t);
+          posX = THREE.MathUtils.lerp(sep.x, 0, ease);
+          posY = THREE.MathUtils.lerp(sep.y, 0, ease);
+          posZ = THREE.MathUtils.lerp(sep.z, 0, ease);
+          rotZ = THREE.MathUtils.lerp(sep.rotZ, 0, ease);
+          rotX = THREE.MathUtils.lerp(sep.rotX, 0, ease);
+          rotY = THREE.MathUtils.lerp(sep.rotY, 0, ease);
+          scale = THREE.MathUtils.lerp(sep.scale, 1.0, ease);
           opacity = 1.0;
-          highlight = Math.sin(t * Math.PI) * 0.35;
-        } else if (p <= 0.84) {
-          // Transformation & Framing (0.72 - 0.84)
-          const t = (p - 0.72) / 0.12;
-          posX = THREE.MathUtils.lerp((sep.x + fin.x) * 0.5, fin.x, t);
-          posY = THREE.MathUtils.lerp((sep.y + fin.y) * 0.5, fin.y, t);
-          posZ = THREE.MathUtils.lerp((sep.z + fin.z) * 0.45, fin.z, t);
-          rotZ = THREE.MathUtils.lerp((sep.rotZ + fin.rotZ) * 0.5, fin.rotZ, t);
-          rotX = THREE.MathUtils.lerp((sep.rotX + fin.rotX) * 0.5, fin.rotX, t);
-          rotY = THREE.MathUtils.lerp((sep.rotY + fin.rotY) * 0.5, fin.rotY, t);
-          scale = THREE.MathUtils.lerp((sep.scale + fin.scale) * 0.5, fin.scale, t);
-          opacity = THREE.MathUtils.lerp(1.0, fin.opacity, t);
-          erosion = 0.0;
+        } else if (p <= 0.90) {
+          // STATE D: Matched Artwork Handoff (0.72 - 0.90)
+          // WebGL stroma layers dissolve smoothly while Solo artwork plate cross-fades in
+          const t = (p - 0.72) / 0.18;
+          posX = 0; posY = 0; posZ = 0;
+          rotZ = 0; rotX = 0; rotY = 0;
+          scale = 1.0;
+          opacity = Math.max(0.0, 1.0 - t);
         } else {
-          // Full Forward Immersion & Clean Section Exit (0.84 - 1.00)
-          // Camera continues forward through core; layers part outward and dissolve completely to 0.0
-          const t = Math.min(1.0, (p - 0.84) / 0.13); // Reaches 1.0 at p = 0.97
-          const easeOut = t * t * (3.0 - 2.0 * t);
-
-          const dirX = Math.sign(fin.x || (idx % 2 === 0 ? 1 : -1));
-          const dirY = Math.sign(fin.y || (idx % 3 === 0 ? 1 : -1));
-          posX = fin.x + dirX * easeOut * 2.2;
-          posY = fin.y + dirY * easeOut * 1.8;
-          posZ = fin.z - easeOut * 1.5;
-          rotZ = fin.rotZ + easeOut * 0.2;
-          rotX = fin.rotX;
-          rotY = fin.rotY;
-          scale = fin.scale * (1.0 + easeOut * 0.85);
-
-          // Absolute dissolution to 0.0: NO leftover ring fragments or floating pieces
-          opacity = Math.max(0.0, fin.opacity * (1.0 - easeOut));
-          erosion = easeOut * 0.6;
+          // STATE E: Gallery Fully Established (0.90 - 1.00)
+          opacity = 0.0;
         }
 
         // Apply subtle micro-motion drift only when visible
-        if (p > 0.15 && p < 0.90) {
-          const drift = Math.sin(elapsed * 0.7 + idx * 0.8) * 0.012;
+        if (p > 0.15 && p < 0.72) {
+          const drift = Math.sin(elapsed * 0.7 + idx * 0.8) * 0.008;
           posX += drift * 0.5;
           posY += drift;
         }
@@ -1217,6 +1253,65 @@ export default function UnifiedIrisHero({
         material.uniforms.uHighlight.value = highlight;
         material.uniforms.uRefractShift.value = refractShift;
       });
+
+      // ── Optical Exposure Stage Coordinator ──
+      const aspect = width / Math.max(height, 1);
+      const aperturePath = computeOrganicAperturePath(p, aspect);
+
+      if (exposureClipPathRef.current) {
+        exposureClipPathRef.current.setAttribute("d", aperturePath);
+      }
+      if (refractionRimPathRef.current) {
+        refractionRimPathRef.current.setAttribute("d", aperturePath);
+      }
+
+      // Luminous Refraction Rim Opacity: peaks around p=0.35..0.45
+      if (refractionGlowRef.current) {
+        const rimOpacity =
+          p > 0.10 && p < 0.72
+            ? Math.sin(((p - 0.10) / 0.62) * Math.PI) * 0.85
+            : 0.0;
+        refractionGlowRef.current.style.opacity = rimOpacity.toFixed(3);
+      }
+
+      // STATE D: Matched Solo Artwork Plate Cross-fade (0.72 -> 0.90)
+      if (matchedSoloPlateRef.current) {
+        if (p <= 0.72) {
+          matchedSoloPlateRef.current.style.opacity = "0";
+        } else if (p <= 0.90) {
+          const t = (p - 0.72) / 0.18;
+          const s = t * t * (3.0 - 2.0 * t);
+          matchedSoloPlateRef.current.style.opacity = s.toFixed(3);
+        } else {
+          matchedSoloPlateRef.current.style.opacity = "1";
+        }
+      }
+
+      // STATE E: Emerging Gallery Heading and Category Controls (0.90 -> 1.00)
+      if (emergingGalleryHeaderRef.current && emergingCategoryBarRef.current) {
+        if (p <= 0.90) {
+          emergingGalleryHeaderRef.current.style.opacity = "0";
+          emergingGalleryHeaderRef.current.style.transform = "translateY(16px)";
+          emergingCategoryBarRef.current.style.opacity = "0";
+          emergingCategoryBarRef.current.style.transform = "translateY(16px)";
+        } else if (p < 1.00) {
+          const t = (p - 0.90) / 0.10;
+          emergingGalleryHeaderRef.current.style.opacity = t.toFixed(3);
+          emergingGalleryHeaderRef.current.style.transform = `translateY(${((1 - t) * 16).toFixed(1)}px)`;
+          emergingCategoryBarRef.current.style.opacity = t.toFixed(3);
+          emergingCategoryBarRef.current.style.transform = `translateY(${((1 - t) * 16).toFixed(1)}px)`;
+        } else {
+          emergingGalleryHeaderRef.current.style.opacity = "1";
+          emergingGalleryHeaderRef.current.style.transform = "translateY(0px)";
+          emergingCategoryBarRef.current.style.opacity = "1";
+          emergingCategoryBarRef.current.style.transform = "translateY(0px)";
+        }
+      }
+
+      // Interaction Availability on Gallery
+      if (exposureOverlayRef.current) {
+        exposureOverlayRef.current.style.pointerEvents = p >= 0.90 ? "auto" : "none";
+      }
     };
 
     // ─── 10. Single Persistent Render Loop ───
@@ -1343,6 +1438,56 @@ export default function UnifiedIrisHero({
         className="pointer-events-none absolute inset-0 z-10 opacity-0"
       >
         <HeroUI />
+      </div>
+
+      {/* ─── OPTICAL EXPOSURE STAGE: Expanding Organic Aperture & Luminous Refraction Rim ─── */}
+      <svg className="absolute w-0 h-0 overflow-hidden pointer-events-none" aria-hidden="true">
+        <defs>
+          <clipPath id="opticalExposureClip" clipPathUnits="objectBoundingBox">
+            <path ref={exposureClipPathRef} d="M 0.5 0.5 Z" />
+          </clipPath>
+          <filter id="refractionGlow" x="-20%" y="-20%" width="140%" height="140%">
+            <feGaussianBlur in="SourceGraphic" stdDeviation="0.012" result="blur" />
+            <feMerge>
+              <feMergeNode in="blur" />
+              <feMergeNode in="SourceGraphic" />
+            </feMerge>
+          </filter>
+        </defs>
+      </svg>
+
+      {/* Luminous Refraction Rim Overlay */}
+      <svg
+        className="absolute inset-0 w-full h-full pointer-events-none z-25 overflow-visible"
+        viewBox="0 0 1 1"
+        preserveAspectRatio="none"
+      >
+        <g ref={refractionGlowRef} style={{ opacity: 0 }}>
+          <path
+            ref={refractionRimPathRef}
+            d="M 0.5 0.5 Z"
+            fill="none"
+            stroke="#F4F1EA"
+            strokeWidth="0.006"
+            filter="url(#refractionGlow)"
+          />
+        </g>
+      </svg>
+
+      {/* Optical Exposure Gallery Stage: Matched-Image Handoff to Solo Art */}
+      <div
+        ref={exposureOverlayRef}
+        className="absolute inset-0 z-20 w-full h-full overflow-hidden pointer-events-none"
+        style={{
+          clipPath: "url(#opticalExposureClip)",
+        }}
+      >
+        <ArtOfIris
+          isEmbeddedInHero={true}
+          soloPlateRef={matchedSoloPlateRef}
+          headerRowRef={emergingGalleryHeaderRef}
+          categoryBarRef={emergingCategoryBarRef}
+        />
       </div>
 
       {/* Pointer Debug Telemetry Overlay (?irisDebug=1) */}
