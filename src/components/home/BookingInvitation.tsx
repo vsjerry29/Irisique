@@ -7,7 +7,6 @@ import { ArrowUpRight, X, Calendar, MapPin } from "lucide-react";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { SITE_CONFIG } from "@/lib/config";
-import OpticalTrace from "@/components/ui/OpticalTrace";
 
 export default function BookingInvitation() {
   const [isPopupModalOpen, setIsPopupModalOpen] = useState(false);
@@ -119,11 +118,6 @@ export default function BookingInvitation() {
           <span className="text-xs font-mono tracking-widest uppercase text-white/50">
             PONDICHERRY, INDIA
           </span>
-
-          {/* Optical Trace Motif on Dark Surface */}
-          <div className="absolute -bottom-8 right-0 w-80 h-20 opacity-30 hidden md:block">
-            <OpticalTrace theme="dark" variant="booking" />
-          </div>
         </div>
 
         {/* Center Main Conversion Hero Typography (Two Halves Boldness) */}

@@ -5,6 +5,7 @@ import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import Header from "@/components/layout/Header";
 import UnifiedIrisHero from "@/components/iris/UnifiedIrisHero";
+import OpticalTraceSystem from "@/components/motion/OpticalTraceSystem";
 import ArtOfIris from "@/components/home/ArtOfIris";
 import ProductTransformation from "@/components/home/ProductTransformation";
 import ExperienceSection from "@/components/home/ExperienceSection";
@@ -61,20 +62,26 @@ export default function HomePage() {
       {/* ─── 01: CINEMATIC DISCOVERY (Unified WebGL Macro & Stroma Travel) ─── */}
       <UnifiedIrisHero />
 
-      {/* ─── 02: THE ART OF IRIS (Curated Museum Compositions: Solo / Couple / Family) ─── */}
-      <ArtOfIris />
+      {/* ─── POST-HERO EDITORIAL DOMAIN: Continuous Page-Spanning Optical Trace 2.0 ─── */}
+      <div id="post-hero-system" className="relative w-full overflow-hidden">
+        {/* ─── THE OPTICAL TRACE 2.0 (Full-Page Liquid Motion System) ─── */}
+        <OpticalTraceSystem />
 
-      {/* ─── 03: THE COLLECTION (Continuous Product Train on Warm Neutral Surfaces) ─── */}
-      <ProductTransformation />
+        {/* ─── 02: THE ART OF IRIS (Curated Museum Compositions: Solo / Couple / Family) ─── */}
+        <ArtOfIris />
 
-      {/* ─── 04: THE EXPERIENCE (Bespoke Atelier Process: Capture • Create • Keep) ─── */}
-      <ExperienceSection />
+        {/* ─── 03: THE COLLECTION (Continuous Product Train on Warm Neutral Surfaces) ─── */}
+        <ProductTransformation />
 
-      {/* ─── 05: YOUR TURN (Striking Near-Black Atelier Appointment Invitation) ─── */}
-      <BookingInvitation />
+        {/* ─── 04: THE EXPERIENCE (Bespoke Atelier Process: Capture • Create • Keep) ─── */}
+        <ExperienceSection />
 
-      {/* ─── 06: MINIMAL FOOTER (Warm Ivory Art Publication Index & Wordmark) ─── */}
-      <Footer />
+        {/* ─── 05: YOUR TURN (Striking Near-Black Atelier Appointment Invitation) ─── */}
+        <BookingInvitation />
+
+        {/* ─── 06: MINIMAL FOOTER (Warm Ivory Art Publication Index & Wordmark) ─── */}
+        <Footer />
+      </div>
 
       {/* ─── Motion Architecture Telemetry HUD (?motionDebug=1) ─── */}
       <MotionDebugPanel />

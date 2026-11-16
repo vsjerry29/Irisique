@@ -7,7 +7,6 @@ import { createPortal } from "react-dom";
 import { ArrowUpRight, X } from "lucide-react";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
-import OpticalThread from "@/components/motion/OpticalThread";
 
 export interface ArtworkComposition {
   id: "solo" | "couple" | "family";
@@ -302,14 +301,6 @@ export default function ArtOfIris() {
         ref={surfaceRef}
         className="relative w-full min-h-screen bg-[#F4F1EA] py-20 sm:py-28 md:py-32 px-6 sm:px-10 md:px-16 lg:px-24 flex flex-col justify-between overflow-visible"
       >
-        {/* ─── VISIBLE OPTICAL THREAD (Signature IRIS Motion Motif) ─── */}
-        <OpticalThread
-          variant="gallery"
-          activeComposition={incomingId || activeId}
-          theme="light"
-          className="absolute inset-0 w-full h-full pointer-events-none z-10"
-        />
-
         {/* ─── Two Halves Asymmetrical Minimal Header Row ─── */}
         <div
           ref={headerRowRef}
