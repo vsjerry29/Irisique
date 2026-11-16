@@ -20,26 +20,26 @@ const STAGES: ProcessStage[] = [
   {
     id: "capture",
     title: "CAPTURE.",
-    tag: "01 / MACRO OPTICAL EXPOSURE",
+    tag: "MACRO OPTICAL EXPOSURE",
     desc: "A painless, fraction-of-a-second exposure at our White Town atelier mapping the microscopic topography of your iris stroma.",
     image: "/assets/process/process_capture.webp",
-    meta: "FOCAL LENGTH: 100MM • 1:1 REPRODUCTION",
+    meta: "",
   },
   {
     id: "create",
     title: "CREATE.",
-    tag: "02 / DARKROOM CHROMATIC CALIBRATION",
+    tag: "DARKROOM CHROMATIC CALIBRATION",
     desc: "Master colorists proof every collagen crypt and melanin filament to P3 wide-gamut mineral pigment standards.",
     image: "/assets/process/process_create.webp",
-    meta: "SPECTRAL PROOFING • D50 ILLUMINANT STANDARD",
+    meta: "",
   },
   {
     id: "keep",
     title: "KEEP.",
-    tag: "03 / ARCHIVAL HEIRLOOM COMMISSION",
+    tag: "ARCHIVAL HEIRLOOM COMMISSION",
     desc: "Hand-embossed, sealed with your unique biometric timestamp, and installed behind UV99 museum anti-reflective glass.",
     image: "/assets/process/process_keep.webp",
-    meta: "HAHNEMÜHLE 310GSM • ARCHIVAL GUARANTEE 75+ YRS",
+    meta: "",
   },
 ];
 
@@ -162,10 +162,9 @@ export default function ExperienceSection() {
         {/* ─── Top Editorial Meta & Section Headline ─── */}
         <div className="max-w-7xl mx-auto w-full flex flex-col lg:flex-row lg:items-end justify-between gap-6 pb-6 border-b border-[#090909]/15">
           <div className="space-y-2">
-            <div className="flex items-center gap-3 text-xs font-mono tracking-[0.26em] text-[#77736D] uppercase">
-              <span className="w-2 h-2 rounded-full bg-[#090909]" />
-              <span>04 / FROM CAPTURE TO ART</span>
-            </div>
+            <span className="text-xs font-sans tracking-[0.24em] text-[#77736D] uppercase font-bold">
+              THE EXPERIENCE
+            </span>
             <h2 className="font-display text-4xl sm:text-6xl md:text-7xl lg:text-8xl font-bold tracking-[-0.04em] uppercase text-[#090909] leading-[0.88]">
               {STAGES[activeStep].title}
             </h2>

@@ -75,17 +75,6 @@ export default function Header({ onReplayIntro }: HeaderProps) {
             </button>
           )}
 
-          {/* Discreet Replay button restricted strictly to hero viewport */}
-          {onReplayIntro && isHeroInView && (
-            <button
-              onClick={onReplayIntro}
-              className="hidden lg:inline-block text-[10px] font-mono tracking-[0.20em] uppercase text-white/40 hover:text-white transition-colors duration-200 px-2 animate-fadeIn"
-              title="Replay Cinematic Opening"
-            >
-              REPLAY [R]
-            </button>
-          )}
-
           {/* MENU Button */}
           <button
             onClick={() => setIsMenuOpen(true)}

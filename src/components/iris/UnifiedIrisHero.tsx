@@ -555,18 +555,18 @@ export default function UnifiedIrisHero({
       layerItems.push({ mesh, spec, material: mat });
     });
 
-    // ─── 4. Resting Iris Metrics (Exact Canonical Composition: 680-710px diameter, 50-52% width) ───
+    // ─── 4. Resting Iris Metrics (Enlarged Canonical Composition: 690-730px diameter at 1918x908, 50-52% width) ───
     const getRestingIrisMetrics = (w: number, h: number) => {
       const mobile = w < 768;
       const aspect = w / h;
       // Target: pupil center at 51.5% of viewport width on desktop (within 50–52% range)
       // centeredCoord = screenCoord - uIrisOffset where screenCoord = (vUv - 0.5) * aspect
       // At pupil center vUv.x = 0.515 => screenCoord.x = (0.515 - 0.5) * aspect = 0.015 * aspect
-      const restingX = mobile ? 0.0 : Math.max(0.015, Math.min(0.038, (0.515 - 0.5) * aspect));
+      const restingX = mobile ? 0.0 : Math.max(0.012, Math.min(0.035, (0.515 - 0.5) * aspect));
       const restingY = mobile ? 0.02 : 0.0;
-      // Target diameter: 83–84vh (~695px at 830px height, matching reference 680–710px).
-      // In shader: diameter = 0.93 * uIrisScale => uIrisScale = 0.837 / 0.93 = 0.90
-      const restingScale = mobile ? 0.84 : 0.90;
+      // Target diameter: ~715px at 1918x908 (10-12% increase per user specification, within 690-730px).
+      // In shader: diameter = 0.93 * uIrisScale * h => uIrisScale = 715 / (0.93 * 908) = 0.8467 ~ 0.85
+      const restingScale = mobile ? 0.82 : 0.85;
       return { restingX, restingY, restingScale };
     };
 
@@ -1045,7 +1045,7 @@ export default function UnifiedIrisHero({
         pin: true,
         pinSpacing: true,
         start: "top top",
-        end: () => `+=${Math.round(window.innerHeight * 1.75)}`, // Continuous forward journey (rotation -> immersion -> enter pupil -> seam)
+        end: () => `+=${Math.round(window.innerHeight * 1.25)}`, // Crisp, responsive pinned scroll travel (rotation -> immersion -> enter pupil -> immediate seam)
         scrub: 0.6,   // Liquid-smooth 0.6s catchup
         invalidateOnRefresh: true,
         refreshPriority: 10,
@@ -1089,16 +1089,16 @@ export default function UnifiedIrisHero({
       const { restingX, restingY, restingScale } = getRestingIrisMetrics(width, height);
 
       // ── 1. HORIZONTAL & VERTICAL POSITIONING ──
-      // Phase A & B (p <= 0.28): Resting hero composition, iris centered at ~51.5% width, 50% height
-      // Phase C (0.28 < p <= 0.60): Pupil smoothly aligns to exact viewport center (50% width, 50% height)
-      // Phase D & E (p > 0.60): Strictly centered for continuous forward immersion into the pupil
+      // Phase A & B (p <= 0.20): Resting hero composition, iris centered at ~51.5% width, 50% height
+      // Phase C (0.20 < p <= 0.50): Pupil smoothly aligns to exact viewport center (50% width, 50% height)
+      // Phase D & E (p > 0.50): Strictly centered for continuous forward immersion into the pupil
       let currentOffsetX = restingX;
       let currentOffsetY = restingY;
-      if (p <= 0.28) {
+      if (p <= 0.20) {
         currentOffsetX = restingX;
         currentOffsetY = restingY;
-      } else if (p <= 0.60) {
-        const t = (p - 0.28) / 0.32;
+      } else if (p <= 0.50) {
+        const t = (p - 0.20) / 0.30;
         const ease = t * t * (3.0 - 2.0 * t);
         currentOffsetX = THREE.MathUtils.lerp(restingX, 0.0, ease);
         currentOffsetY = THREE.MathUtils.lerp(restingY, 0.0, ease);
@@ -1111,53 +1111,53 @@ export default function UnifiedIrisHero({
       masterLayerGroup.position.set(currentOffsetX * 5.01, currentOffsetY * 5.01, 0);
 
       // ── 2. SCROLL ROTATION (Smooth clockwise rotation, no abrupt stops, no backwards spins) ──
-      // Phase B (0.00 <= p <= 0.28): Complete circular iris rotates clockwise across ~115 deg
-      // Phase C & D (0.28 < p <= 0.94): Rotation gently continues and eases to ~145 deg during immersion
-      // Phase E (p > 0.94): Fixed at 145 deg during black pupil & gallery transition
+      // Phase B (0.00 <= p <= 0.20): Complete circular iris rotates clockwise across ~95 deg
+      // Phase C & D (0.20 < p <= 0.74): Rotation gently continues and eases to ~130 deg during immersion
+      // Phase E (p > 0.74): Fixed at 130 deg during gallery transition
       let scrollRotation = 0;
-      if (p <= 0.28) {
-        const t = p / 0.28;
-        scrollRotation = t * THREE.MathUtils.degToRad(115);
-      } else if (p <= 0.94) {
-        const t = (p - 0.28) / 0.66;
+      if (p <= 0.20) {
+        const t = p / 0.20;
+        scrollRotation = t * THREE.MathUtils.degToRad(95);
+      } else if (p <= 0.74) {
+        const t = (p - 0.20) / 0.54;
         const ease = Math.sin(t * Math.PI * 0.5);
-        scrollRotation = THREE.MathUtils.degToRad(115) + ease * THREE.MathUtils.degToRad(30);
+        scrollRotation = THREE.MathUtils.degToRad(95) + ease * THREE.MathUtils.degToRad(35);
       } else {
-        scrollRotation = THREE.MathUtils.degToRad(145);
+        scrollRotation = THREE.MathUtils.degToRad(130);
       }
       macroUniforms.uScrollRotation.value = scrollRotation;
       masterLayerGroup.rotation.z = -scrollRotation;
 
       // ── 3. CAMERA DEPTH (STRICTLY MONOTONIC FORWARD JOURNEY INTO THE PUPIL) ──
       // Requirement: Zero zoom-out or pullback while scrolling forward.
-      // Phase A & B (p <= 0.28): Resting frontal view at Z=6.2 (desktop) / 7.2 (mobile)
-      // Phase C (0.28 < p <= 0.72): Camera travels forward into stroma: Z goes from 6.2 -> 1.70
-      // Phase D (0.72 < p <= 0.94): Camera moves directly into the black pupil: Z goes from 1.70 -> 0.28
-      // Phase E (p > 0.94): Submerged in the black pupil: Z=0.28
+      // Phase A & B (p <= 0.20): Resting frontal view at Z=6.2 (desktop) / 7.2 (mobile)
+      // Phase C (0.20 < p <= 0.62): Camera travels forward into stroma: Z goes from 6.2 -> 1.80
+      // Phase D (0.62 < p <= 0.74): Camera moves directly into the black pupil: Z goes from 1.80 -> 0.25
+      // Phase E (p > 0.74): Submerged in the black pupil: Z=0.25
       const baseCamZ = mobile ? 7.20 : 6.20;
       let camX = 0, camY = 0, camZ = baseCamZ;
 
-      if (p <= 0.28) {
+      if (p <= 0.20) {
         camX = mouse.x * 0.04;
         camY = -mouse.y * 0.03;
         camZ = baseCamZ;
-      } else if (p <= 0.72) {
-        const t = (p - 0.28) / 0.44;
+      } else if (p <= 0.62) {
+        const t = (p - 0.20) / 0.42;
         const ease = t * t * (3.0 - 2.0 * t);
-        camZ = THREE.MathUtils.lerp(baseCamZ, mobile ? 2.30 : 1.70, ease);
+        camZ = THREE.MathUtils.lerp(baseCamZ, mobile ? 2.30 : 1.80, ease);
         // Subtle organic stroma drift that gently dies down as we approach center
         const driftAmp = (1.0 - ease) * 0.08;
         camX = Math.sin(t * Math.PI) * driftAmp + mouse.x * 0.04 * (1 - ease);
         camY = -Math.sin(t * Math.PI) * driftAmp * 0.7 - mouse.y * 0.03 * (1 - ease);
-      } else if (p <= 0.94) {
-        const tPupil = (p - 0.72) / 0.22;
+      } else if (p <= 0.74) {
+        const tPupil = (p - 0.62) / 0.12;
         const easePupil = tPupil * tPupil * (3.0 - 2.0 * tPupil);
         // Direct forward descent into the black pupil core:
-        camZ = THREE.MathUtils.lerp(mobile ? 2.30 : 1.70, mobile ? 0.38 : 0.28, easePupil);
+        camZ = THREE.MathUtils.lerp(mobile ? 2.30 : 1.80, mobile ? 0.35 : 0.25, easePupil);
         camX = 0;
         camY = 0;
       } else {
-        camZ = mobile ? 0.38 : 0.28;
+        camZ = mobile ? 0.35 : 0.25;
         camX = 0;
         camY = 0;
       }
@@ -1165,12 +1165,12 @@ export default function UnifiedIrisHero({
       camera.position.set(camX, camY, camZ);
       camera.lookAt(0, 0, 0);
 
-      // ── 4. MACRO QUAD CROSS-FADES INTO 11 3D LAYERS (0.28 -> 0.38) ──
+      // ── 4. MACRO QUAD CROSS-FADES INTO 11 3D LAYERS (0.20 -> 0.30) ──
       let macroQuadOpacity = 1.0;
-      if (p <= 0.28) {
+      if (p <= 0.20) {
         macroQuadOpacity = 1.0;
-      } else if (p <= 0.38) {
-        macroQuadOpacity = 1.0 - (p - 0.28) / 0.10;
+      } else if (p <= 0.30) {
+        macroQuadOpacity = 1.0 - (p - 0.20) / 0.10;
       } else {
         macroQuadOpacity = 0.0;
       }
@@ -1179,26 +1179,26 @@ export default function UnifiedIrisHero({
 
       // ── 5. ATMOSPHERIC FOG DENSITY PROGRESSION ──
       let fogDensity = 0.03;
-      if (p <= 0.28) {
-        fogDensity = THREE.MathUtils.lerp(0.02, 0.035, p / 0.28);
-      } else if (p <= 0.65) {
-        fogDensity = THREE.MathUtils.lerp(0.035, 0.075, (p - 0.28) / 0.37);
-      } else if (p <= 0.90) {
-        fogDensity = THREE.MathUtils.lerp(0.075, 0.0, (p - 0.65) / 0.25);
+      if (p <= 0.20) {
+        fogDensity = THREE.MathUtils.lerp(0.02, 0.035, p / 0.20);
+      } else if (p <= 0.55) {
+        fogDensity = THREE.MathUtils.lerp(0.035, 0.070, (p - 0.20) / 0.35);
+      } else if (p <= 0.72) {
+        fogDensity = THREE.MathUtils.lerp(0.070, 0.0, (p - 0.55) / 0.17);
       } else {
         fogDensity = 0.0;
       }
       fogMaterial.uniforms.uDensity.value = fogDensity;
       fogMaterial.uniforms.uTime.value = elapsed;
 
-      // ── 6. PARTICLES DISSOLVE AS WE ENTER PUPIL ──
+      // ── 6. PARTICLES DISSOLVE AS WE ENTER PUPIL (Zero prolonged black empty particles) ──
       particleMaterial.uniforms.uTime.value = elapsed;
-      if (p <= 0.28) {
+      if (p <= 0.20) {
         particleMaterial.opacity = 0.7;
+      } else if (p <= 0.62) {
+        particleMaterial.opacity = THREE.MathUtils.lerp(0.7, 0.25, (p - 0.20) / 0.42);
       } else if (p <= 0.72) {
-        particleMaterial.opacity = THREE.MathUtils.lerp(0.7, 0.3, (p - 0.28) / 0.44);
-      } else if (p <= 0.90) {
-        particleMaterial.opacity = THREE.MathUtils.lerp(0.3, 0.0, (p - 0.72) / 0.18);
+        particleMaterial.opacity = THREE.MathUtils.lerp(0.25, 0.0, (p - 0.62) / 0.10);
       } else {
         particleMaterial.opacity = 0.0;
       }
@@ -1215,15 +1215,15 @@ export default function UnifiedIrisHero({
         let erosion = 0.0;
         let highlight = 0.0;
 
-        if (p <= 0.28) {
+        if (p <= 0.20) {
           // Assembled at origin matching complete circular iris, zero Z-separation
           posX = 0; posY = 0; posZ = 0;
           rotZ = 0; rotX = 0; rotY = 0;
           scale = restingScale;
           opacity = 0.0; // Macro quad covers this phase
-        } else if (p <= 0.72) {
+        } else if (p <= 0.62) {
           // Phase C: Organic Unfolding - Layers separate along 3D Z-depth as camera travels between them
-          const t = (p - 0.28) / 0.44;
+          const t = (p - 0.20) / 0.42;
           const ease = t * t * (3.0 - 2.0 * t);
           posX = sep.x * ease;
           posY = sep.y * ease;
@@ -1232,45 +1232,45 @@ export default function UnifiedIrisHero({
           rotX = sep.rotX * ease;
           rotY = sep.rotY * ease;
           scale = THREE.MathUtils.lerp(restingScale, sep.scale, ease);
-          opacity = Math.min(1.0, (p - 0.28) / 0.08);
+          opacity = Math.min(1.0, (p - 0.20) / 0.08);
           highlight = Math.sin(ease * Math.PI) * 0.25;
 
           // Subtle organic micro-motion drift
           const drift = Math.sin(elapsed * 0.7 + idx * 0.8) * 0.008;
           posX += drift * 0.5;
           posY += drift;
-        } else if (p <= 0.94) {
-          // Phase D: Enter the Black Pupil (0.72 -> 0.94)
+        } else if (p <= 0.74) {
+          // Phase D: Enter the Black Pupil (0.62 -> 0.74)
           // The camera approaches the central black pupil.
           // Surrounding fibres/collarette/limbus expand outward and pass beyond screen edges.
           // The central black pupil expands to cover 100% of the viewport.
-          const tPupil = (p - 0.72) / 0.22;
+          const tPupil = (p - 0.62) / 0.12;
           const easePupil = tPupil * tPupil * (3.0 - 2.0 * tPupil);
 
           if (spec.type === "pupil") {
             // Pupil core stays centered and expands smoothly as camera dives in
             posX = 0; posY = 0; posZ = 0;
             rotZ = 0; rotX = 0; rotY = 0;
-            // Expands by 3.8x so the black core completely floods the viewport
-            scale = THREE.MathUtils.lerp(restingScale, restingScale * 3.8, easePupil);
+            // Expands by 4.0x so the black core completely floods the viewport
+            scale = THREE.MathUtils.lerp(restingScale, restingScale * 4.0, easePupil);
             opacity = 1.0;
           } else {
             // Surrounding fibres, crypts, collarette, and limbus fly outward past the frame
-            posX = sep.x * (1.0 + easePupil * 2.2);
-            posY = sep.y * (1.0 + easePupil * 2.2);
+            posX = sep.x * (1.0 + easePupil * 2.5);
+            posY = sep.y * (1.0 + easePupil * 2.5);
             posZ = sep.z;
             rotZ = sep.rotZ + easePupil * 0.15;
             rotX = sep.rotX;
             rotY = sep.rotY;
-            scale = THREE.MathUtils.lerp(sep.scale, sep.scale * 1.5, easePupil);
+            scale = THREE.MathUtils.lerp(sep.scale, sep.scale * 1.6, easePupil);
             // Outer fibres dissolve as they pass outside camera FOV
-            opacity = Math.max(0.0, 1.0 - easePupil * 1.6);
+            opacity = Math.max(0.0, 1.0 - easePupil * 1.8);
           }
         } else {
           // Phase E: 100% Black Pupil state
           if (spec.type === "pupil") {
             posX = 0; posY = 0; posZ = 0;
-            scale = restingScale * 3.8;
+            scale = restingScale * 4.0;
             opacity = 1.0;
           } else {
             opacity = 0.0;
@@ -1286,15 +1286,16 @@ export default function UnifiedIrisHero({
         material.uniforms.uHighlight.value = highlight;
       });
 
-      // ── 8. SEAM TRANSITION OUT OF THE BLACK PUPIL INTO THE WARM-IVORY GALLERY ──
-      // Phase E (0.94 -> 1.00): The black pupil field is uncovered by the approved asymmetric photographic seam
+      // ── 8. IMMEDIATE SEAM TRANSITION OUT OF THE BLACK PUPIL INTO THE WARM-IVORY GALLERY ──
+      // Phase E (0.74 -> 1.00): As the pupil fills the screen, the warm-ivory gallery emerges immediately!
+      // Zero long black hold, zero empty particle phase. Maximum transition-only black hold <= 5vh scroll travel.
       let seamP = 0.0;
-      if (p <= 0.94) {
+      if (p <= 0.74) {
         seamP = 0.0;
       } else if (p >= 1.00) {
         seamP = 1.0;
       } else {
-        seamP = (p - 0.94) / 0.06;
+        seamP = (p - 0.74) / 0.26;
       }
       const { clipPath, edgeLine } = computePhotographicSeamPath(seamP);
 
@@ -1307,7 +1308,7 @@ export default function UnifiedIrisHero({
 
       // Gallery clip-path
       if (exposureOverlayRef.current) {
-        if (p < 0.94) {
+        if (p < 0.74) {
           exposureOverlayRef.current.style.visibility = "hidden";
           exposureOverlayRef.current.style.pointerEvents = "none";
         } else {
@@ -1334,7 +1335,7 @@ export default function UnifiedIrisHero({
 
       // Canvas pointer-events and visibility: active during hero, hidden when gallery settles
       if (canvas) {
-        canvas.style.pointerEvents = p < 0.94 ? "auto" : "none";
+        canvas.style.pointerEvents = p < 0.74 ? "auto" : "none";
         canvas.style.opacity = p >= 1.00 ? "0" : "1";
         canvas.style.visibility = p >= 1.00 ? "hidden" : "visible";
       }

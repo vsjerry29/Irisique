@@ -190,10 +190,9 @@ export default function ProductTransformation() {
       {/* ─── Two Halves-Style Asymmetrical Section Header ─── */}
       <div className="max-w-7xl mx-auto w-full px-6 sm:px-10 md:px-16 lg:px-24 flex flex-col lg:flex-row lg:items-end justify-between gap-8 mb-16 sm:mb-24">
         <div className="space-y-4">
-          <div className="flex items-center gap-3 text-xs font-mono tracking-[0.26em] text-[#77736D] uppercase">
-            <span className="w-2 h-2 rounded-full bg-[#090909]" />
-            <span>03 / THE COLLECTION</span>
-          </div>
+          <span className="text-xs font-sans tracking-[0.24em] text-[#77736D] uppercase font-bold">
+            THE COLLECTION
+          </span>
           <h2 className="font-display text-5xl sm:text-7xl md:text-8xl lg:text-9xl font-bold tracking-[-0.04em] uppercase text-[#090909] leading-[0.88]">
             MADE TO<br />BE KEPT.
           </h2>

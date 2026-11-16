@@ -31,12 +31,6 @@ export default function HeroUI({ onDiscoverClick }: HeroUIProps) {
             </Link>
           </div>
         </div>
-
-        {/* Right Column: Micro-label */}
-        <div className="flex items-center gap-2 text-[10px] sm:text-[11px] tracking-[0.26em] uppercase text-white/60 font-mono">
-          <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
-          <span>SCROLL TO EXPLORE</span>
-        </div>
       </div>
     </div>
   );

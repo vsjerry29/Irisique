@@ -84,10 +84,9 @@ export default function BookingInvitation() {
       >
         {/* Top Meta Indicator */}
         <div className="max-w-7xl mx-auto w-full flex items-center justify-between border-b border-white/15 pb-8 relative">
-          <div className="flex items-center gap-3 text-xs font-mono tracking-[0.26em] uppercase text-white/60">
-            <span className="w-2 h-2 rounded-full bg-white animate-pulse" />
-            <span>05 / PRIVATE APPOINTMENTS</span>
-          </div>
+          <span className="text-xs font-sans tracking-[0.24em] uppercase text-white/70 font-bold">
+            PRIVATE APPOINTMENTS
+          </span>
           <span className="text-xs font-mono tracking-widest uppercase text-white/50">
             PONDICHERRY, INDIA
           </span>

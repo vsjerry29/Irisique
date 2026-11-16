@@ -43,7 +43,7 @@ const COMPOSITIONS: ArtworkComposition[] = [
     dimensions: "Panoramic Diptych • Up to 160 × 80 cm",
     image: "/assets/couple/couple_artwork_final.webp",
     aspect: "aspect-[16/9]",
-    maxWidthClass: "max-w-4xl lg:max-w-5xl",
+    maxWidthClass: "max-w-2xl lg:max-w-3xl",
     containerShape: "rounded-2xl overflow-hidden bg-[#090909]",
   },
   {
@@ -55,7 +55,7 @@ const COMPOSITIONS: ArtworkComposition[] = [
     dimensions: "Grand Horizon • Up to 200 × 90 cm",
     image: "/assets/art/family_artwork_final.webp",
     aspect: "aspect-[16/9]",
-    maxWidthClass: "max-w-5xl lg:max-w-6xl",
+    maxWidthClass: "max-w-3xl lg:max-w-4xl",
     containerShape: "rounded-2xl overflow-hidden bg-[#090909]",
   },
 ];
@@ -341,31 +341,21 @@ export default function ArtOfIris({
         <div
           ref={setHeaderRowRef}
           className={`max-w-7xl mx-auto w-full flex flex-col lg:flex-row lg:items-end justify-between gap-4 ${
-            isEmbeddedInHero ? "pb-3 sm:pb-4 border-b border-[#090909]/15" : "pb-8 border-b border-[#090909]/15"
+            isEmbeddedInHero ? "pb-2 sm:pb-3 border-b border-[#090909]/15" : "pb-8 border-b border-[#090909]/15"
           } relative z-20 will-change-transform`}
           style={isEmbeddedInHero ? { opacity: 0, transform: "translateY(16px)" } : undefined}
         >
-          <div className="space-y-2 sm:space-y-2.5">
-            <div className="flex items-center gap-3 text-xs font-mono tracking-[0.26em] text-[#706D68] uppercase">
-              <span className="w-2 h-2 rounded-full bg-[#090909]" />
-              <span>02 / WORKS THAT MOVE</span>
-            </div>
+          <div>
             <h2
               ref={headlineRef}
               className={`font-display ${
                 isEmbeddedInHero
-                  ? "text-4xl sm:text-5xl md:text-6xl lg:text-7xl"
+                  ? "text-3xl sm:text-4xl md:text-5xl lg:text-6xl"
                   : "text-5xl sm:text-6xl md:text-7xl lg:text-8xl"
               } font-bold tracking-[-0.03em] uppercase text-[#090909] leading-[0.92]`}
             >
               EVERY IRIS<br />IS ART.
             </h2>
-          </div>
-
-          <div className="flex items-center gap-6 pt-1 lg:pt-0">
-            <span className="text-xs font-mono tracking-[0.20em] uppercase text-[#706D68]">
-              STUDIO ARCHIVE • 2026
-            </span>
           </div>
         </div>
 
@@ -373,7 +363,7 @@ export default function ArtOfIris({
         <div
           ref={setCategoryBarRef}
           className={`max-w-7xl mx-auto w-full flex flex-col sm:flex-row sm:items-center justify-between gap-4 ${
-            isEmbeddedInHero ? "pt-3 pb-2" : "pt-8 pb-4"
+            isEmbeddedInHero ? "pt-2 pb-1.5" : "pt-8 pb-4"
           } relative z-20 will-change-transform`}
           style={isEmbeddedInHero ? { opacity: 0, transform: "translateY(16px)" } : undefined}
         >
@@ -392,7 +382,7 @@ export default function ArtOfIris({
                   onFocus={() => handleTabFocus(comp.id)}
                   onKeyDown={(e) => handleTabKeyDown(e, comp.id)}
                   aria-pressed={isActive}
-                  className={`group relative py-1.5 sm:py-2 text-base sm:text-lg font-sans tracking-[0.16em] uppercase transition-all duration-300 cursor-pointer focus:outline-none focus-visible:ring-1 focus-visible:ring-[#090909] ${
+                  className={`group relative py-1 text-base sm:text-lg font-sans tracking-[0.16em] uppercase transition-all duration-300 cursor-pointer focus:outline-none focus-visible:ring-1 focus-visible:ring-[#090909] ${
                     isActive
                       ? "font-bold text-[#090909]"
                       : "font-normal text-[#706D68] hover:text-[#090909]"
@@ -427,7 +417,7 @@ export default function ArtOfIris({
         {/* ─── Specimen Artwork Placement: 100% Opacity, Deep Black Contrast, Zero Dimming ─── */}
         <div
           className={`max-w-7xl mx-auto w-full my-auto ${
-            isEmbeddedInHero ? "py-1 sm:py-2 flex-1 min-h-0" : "py-6 sm:py-10 md:py-12"
+            isEmbeddedInHero ? "py-1 flex-1 min-h-0" : "py-6 sm:py-10 md:py-12"
           } flex flex-col items-center justify-center relative z-20`}
           onMouseMove={handleMouseMove}
           onMouseLeave={handleMouseLeave}
@@ -443,7 +433,7 @@ export default function ArtOfIris({
               data-artwork-plate="true"
               onClick={() => setIsDetailOpen(true)}
               className={`relative w-full ${activeComp.aspect} ${activeComp.containerShape} ${
-                isEmbeddedInHero ? "max-h-[46vh] sm:max-h-[48vh] lg:max-h-[50vh]" : "max-h-[72vh]"
+                isEmbeddedInHero ? "max-h-[38vh] sm:max-h-[40vh] lg:max-h-[42vh]" : "max-h-[72vh]"
               } cursor-pointer group shadow-2xl`}
               style={{ opacity: isEmbeddedInHero ? 0 : 1, filter: "none" }}
               title="Click to view artwork fullscreen"
@@ -464,7 +454,7 @@ export default function ArtOfIris({
               <div
                 ref={incomingImageRef}
                 className={`absolute inset-0 w-full ${incomingComp.aspect} ${incomingComp.containerShape} ${
-                  isEmbeddedInHero ? "max-h-[46vh] sm:max-h-[48vh] lg:max-h-[50vh]" : "max-h-[72vh]"
+                  isEmbeddedInHero ? "max-h-[38vh] sm:max-h-[40vh] lg:max-h-[42vh]" : "max-h-[72vh]"
                 } pointer-events-none z-10 shadow-2xl`}
               >
                 <Image
@@ -477,39 +467,34 @@ export default function ArtOfIris({
               </div>
             )}
 
-            {/* Minimal Sub-Headline & Dimension Meta */}
+            {/* Minimal Editorial Title & Fullscreen Action */}
             <div
-              className={`w-full flex flex-col sm:flex-row sm:items-baseline justify-between gap-3 ${
-                isEmbeddedInHero ? "mt-3 sm:mt-4 pt-2 sm:pt-3" : "mt-8 pt-6"
+              className={`w-full flex items-center justify-between ${
+                isEmbeddedInHero ? "mt-2 pt-1.5" : "mt-8 pt-6"
               } border-t border-[#090909]/10 text-[#706D68]`}
             >
-              <div className="flex flex-col sm:flex-row sm:items-baseline gap-2 sm:gap-4">
-                <span className="text-sm font-sans tracking-[0.16em] uppercase text-[#090909] font-bold">
-                  {incomingComp ? incomingComp.title : activeComp.title}
-                </span>
-                <span className="text-xs font-sans tracking-wide">
-                  — {incomingComp ? incomingComp.summary : activeComp.summary}
-                </span>
-              </div>
+              <span className="text-xs sm:text-sm font-sans tracking-[0.18em] uppercase text-[#090909] font-bold">
+                {incomingComp ? incomingComp.title : activeComp.title}
+              </span>
 
-              <div className="flex items-center gap-6 text-xs font-mono tracking-wider">
-                <span>{incomingComp ? incomingComp.dimensions : activeComp.dimensions}</span>
-                <span
-                  className="text-[#090909] font-bold underline underline-offset-4 cursor-pointer hover:opacity-70 transition-opacity"
-                  onClick={() => setIsDetailOpen(true)}
-                >
-                  FULLSCREEN ↗
-                </span>
-              </div>
+              <button
+                type="button"
+                className="text-xs font-mono tracking-wider text-[#090909] font-bold underline underline-offset-4 cursor-pointer hover:opacity-70 transition-opacity"
+                onClick={() => setIsDetailOpen(true)}
+              >
+                FULLSCREEN ↗
+              </button>
             </div>
           </div>
         </div>
 
-        {/* ─── Section Bottom Architecture ─── */}
-        <div className="max-w-7xl mx-auto w-full pt-6 flex items-center justify-between text-xs font-mono tracking-[0.24em] uppercase text-[#706D68] border-t border-[#090909]/15 relative z-20">
-          <span>ATELIER PONDICHERRY</span>
-          <span>BESPOKE CAPTURE</span>
-        </div>
+        {/* ─── Clean Section Bottom Architecture (Only if standalone page) ─── */}
+        {!isEmbeddedInHero && (
+          <div className="max-w-7xl mx-auto w-full pt-6 flex items-center justify-between text-xs font-mono tracking-[0.24em] uppercase text-[#706D68] border-t border-[#090909]/15 relative z-20">
+            <span>ATELIER PONDICHERRY</span>
+            <span>BESPOKE CAPTURE</span>
+          </div>
+        )}
       </div>
 
       {/* ─── REDESIGNED ARTWORK POPUP: Solid Black Gallery Surface for Currently Active Preview ─── */}
