@@ -394,8 +394,16 @@ export default function TransitionLabStage({ onProgressChange }: TransitionLabSt
       setCurrentProgress(p);
       if (onProgressChange) onProgressChange(p);
 
-      // A. Asymmetric Diagonal Photographic Seam Update
-      const { clipPath, edgeLine } = computePhotographicSeamPath(p);
+      // A. Asymmetric Diagonal Photographic Seam Update (0.70 -> 0.94)
+      let seamP = 0.0;
+      if (p <= 0.70) {
+        seamP = 0.0;
+      } else if (p >= 0.94) {
+        seamP = 1.0;
+      } else {
+        seamP = (p - 0.70) / 0.24;
+      }
+      const { clipPath, edgeLine } = computePhotographicSeamPath(seamP);
       if (seamClipPathRef.current) {
         seamClipPathRef.current.setAttribute("d", clipPath);
       }
@@ -403,26 +411,56 @@ export default function TransitionLabStage({ onProgressChange }: TransitionLabSt
         seamEdgeLineRef.current.setAttribute("d", edgeLine);
       }
 
-      // B. Hero Typography Overlay Fade-Out (0.00 -> 0.15)
+      // B. Hero Typography Overlay Fade-Out (0.00 -> 0.12)
       if (heroTextRef.current) {
-        const textOpacity = Math.max(0, 1.0 - p / 0.15);
+        const textOpacity = Math.max(0, 1.0 - p / 0.12);
         heroTextRef.current.style.opacity = textOpacity.toFixed(3);
         heroTextRef.current.style.transform = `translateY(${-p * 35}px)`;
       }
 
-      // C. Macro Quad Cross-fade into 3D Stroma Layers (0.15 -> 0.25)
+      // C. Macro Quad Cross-fade into 3D Stroma Layers (0.35 -> 0.45)
       let macroQuadOpacity = 1.0;
-      if (p > 0.15 && p <= 0.25) {
-        macroQuadOpacity = 1.0 - (p - 0.15) / 0.10;
-      } else if (p > 0.25) {
+      if (p <= 0.35) {
+        macroQuadOpacity = 1.0;
+      } else if (p <= 0.45) {
+        macroQuadOpacity = 1.0 - (p - 0.35) / 0.10;
+      } else {
         macroQuadOpacity = 0.0;
       }
       macroUniforms.uMasterOpacity.value = macroQuadOpacity;
       macroQuad.visible = macroQuadOpacity > 0.001;
 
-      // D. Master Iris Rotation and Camera Drift
-      const rotAngle = p * THREE.MathUtils.degToRad(35);
+      // D. Master Iris Rotation Sequence: Rotation Before Immersion
+      let rotAngle = 0;
+      if (p <= 0.35) {
+        const t = p / 0.35;
+        rotAngle = t * THREE.MathUtils.degToRad(125);
+      } else if (p <= 0.70) {
+        const t = (p - 0.35) / 0.35;
+        const ease = Math.sin(t * Math.PI * 0.5);
+        rotAngle = THREE.MathUtils.degToRad(125) + ease * THREE.MathUtils.degToRad(25);
+      } else {
+        const t = Math.min(1.0, (p - 0.70) / 0.15);
+        const ease = t * t * (3.0 - 2.0 * t);
+        rotAngle = THREE.MathUtils.lerp(THREE.MathUtils.degToRad(150), 0, ease);
+      }
       masterLayerGroup.rotation.z = -rotAngle;
+
+      // Camera coordinates:
+      if (p <= 0.35) {
+        camera.position.set(0, 0, isMobile ? 7.2 : 6.2);
+        camera.lookAt(0, 0, 0);
+      } else if (p <= 0.70) {
+        const t = (p - 0.35) / 0.35;
+        const camZ = THREE.MathUtils.lerp(isMobile ? 7.2 : 6.2, isMobile ? 5.2 : 4.2, t);
+        camera.position.set(0, 0, camZ);
+        camera.lookAt(0, 0, 0);
+      } else {
+        const t = Math.min(1.0, (p - 0.70) / 0.15);
+        const camZ = THREE.MathUtils.lerp(isMobile ? 5.2 : 4.2, isMobile ? 7.0 : 6.6, t);
+        camera.position.set(0, 0, camZ);
+        camera.lookAt(0, 0, 0);
+      }
 
       // E. WebGL Stroma Layers Transformation & Solo Plate Handoff
       layerItems.forEach((item) => {
@@ -431,17 +469,17 @@ export default function TransitionLabStage({ onProgressChange }: TransitionLabSt
 
         let posX = 0, posY = 0, posZ = 0;
         let rotZ = 0, rotX = 0, rotY = 0;
-        let scale = 1.0;
+        let scale = 0.82;
         let opacity = 1.0;
 
-        if (p <= 0.15) {
-          // Assembled hero state
+        if (p <= 0.35) {
+          // Assembled hero state, zero separation
           posX = 0; posY = 0; posZ = 0;
-          scale = 1.0;
-          opacity = 1.0;
-        } else if (p <= 0.45) {
+          scale = 0.82;
+          opacity = 0.0;
+        } else if (p <= 0.55) {
           // Subtle organic unfolding (depth separation)
-          const t = (p - 0.15) / 0.30;
+          const t = (p - 0.35) / 0.20;
           const ease = t * t * (3.0 - 2.0 * t);
           posX = sep.x * ease;
           posY = sep.y * ease;
@@ -449,11 +487,11 @@ export default function TransitionLabStage({ onProgressChange }: TransitionLabSt
           rotZ = sep.rotZ * ease;
           rotX = sep.rotX * ease;
           rotY = sep.rotY * ease;
-          scale = 1.0 + (sep.scale - 1.0) * ease;
-          opacity = 1.0;
-        } else if (p <= 0.65) {
+          scale = THREE.MathUtils.lerp(0.82, sep.scale, ease);
+          opacity = Math.min(1.0, (p - 0.35) / 0.08);
+        } else if (p <= 0.70) {
           // Consolidation towards Solo artwork plate center & diameter
-          const t = (p - 0.45) / 0.20;
+          const t = (p - 0.55) / 0.15;
           const ease = t * t * (3.0 - 2.0 * t);
           posX = THREE.MathUtils.lerp(sep.x, 0, ease);
           posY = THREE.MathUtils.lerp(sep.y, 0, ease);
@@ -463,10 +501,10 @@ export default function TransitionLabStage({ onProgressChange }: TransitionLabSt
           rotY = THREE.MathUtils.lerp(sep.rotY, 0, ease);
           scale = THREE.MathUtils.lerp(sep.scale, 1.0, ease);
           opacity = 1.0;
-        } else if (p <= 0.85) {
-          // Matched Artwork Handoff (0.65 -> 0.85)
+        } else if (p <= 0.88) {
+          // Matched Artwork Handoff (0.70 -> 0.88)
           // WebGL layers dissolve smoothly while Solo artwork plate cross-fades in
-          const t = (p - 0.65) / 0.20;
+          const t = (p - 0.70) / 0.18;
           posX = 0; posY = 0; posZ = 0;
           scale = 1.0;
           opacity = Math.max(0.0, 1.0 - t);
@@ -481,12 +519,12 @@ export default function TransitionLabStage({ onProgressChange }: TransitionLabSt
         material.uniforms.uOpacity.value = opacity;
       });
 
-      // F. Solo Artwork Plate Cross-fade (0.65 -> 0.85)
+      // F. Solo Artwork Plate Cross-fade (0.72 -> 0.88)
       if (soloPlateRef.current) {
-        if (p <= 0.65) {
+        if (p <= 0.72) {
           soloPlateRef.current.style.opacity = "0";
-        } else if (p <= 0.85) {
-          const t = (p - 0.65) / 0.20;
+        } else if (p <= 0.88) {
+          const t = (p - 0.72) / 0.16;
           const s = t * t * (3.0 - 2.0 * t);
           soloPlateRef.current.style.opacity = s.toFixed(3);
         } else {
@@ -494,15 +532,15 @@ export default function TransitionLabStage({ onProgressChange }: TransitionLabSt
         }
       }
 
-      // G. Emerging Gallery Header & Category Switcher (0.75 -> 1.00)
+      // G. Emerging Gallery Header & Category Switcher (0.80 -> 1.00)
       if (galleryHeaderRef.current && categoryBarRef.current) {
-        if (p <= 0.75) {
+        if (p <= 0.80) {
           galleryHeaderRef.current.style.opacity = "0";
           galleryHeaderRef.current.style.transform = "translateY(20px)";
           categoryBarRef.current.style.opacity = "0";
           categoryBarRef.current.style.transform = "translateY(20px)";
         } else if (p < 1.00) {
-          const t = (p - 0.75) / 0.25;
+          const t = (p - 0.80) / 0.20;
           galleryHeaderRef.current.style.opacity = t.toFixed(3);
           galleryHeaderRef.current.style.transform = `translateY(${((1 - t) * 20).toFixed(1)}px)`;
           categoryBarRef.current.style.opacity = t.toFixed(3);
@@ -517,11 +555,11 @@ export default function TransitionLabStage({ onProgressChange }: TransitionLabSt
 
       // Gallery Clip-path: hidden at hero start, clipped by seam during transition, completely cleared (none) when settled
       if (galleryStageRef.current) {
-        if (p <= 0.02) {
+        if (p <= 0.70) {
           galleryStageRef.current.style.visibility = "hidden";
         } else {
           galleryStageRef.current.style.visibility = "visible";
-          if (p >= 0.90) {
+          if (p >= 0.94) {
             galleryStageRef.current.style.clipPath = "none";
           } else {
             galleryStageRef.current.style.clipPath = "url(#photographicSeamClip)";
@@ -531,22 +569,22 @@ export default function TransitionLabStage({ onProgressChange }: TransitionLabSt
 
       // Canvas pointer-events and opacity: enabled during hero, dissolved when Solo plate settled
       if (canvas) {
-        if (p <= 0.85) {
+        if (p <= 0.88) {
           canvas.style.opacity = "1";
           canvas.style.pointerEvents = "auto";
         } else {
-          const tDissolve = (p - 0.85) / 0.15;
+          const tDissolve = (p - 0.88) / 0.12;
           canvas.style.opacity = Math.max(0, 1.0 - tDissolve).toFixed(3);
           canvas.style.pointerEvents = "none";
         }
       }
     };
 
-    // ─── 3. ScrollTrigger Setup (Compact ~75vh travel) ───
+    // ─── 3. ScrollTrigger Setup (115vh travel) ───
     const scrollTrigger = ScrollTrigger.create({
       trigger: container,
       start: "top top",
-      end: () => `+=${Math.round(window.innerHeight * 0.75)}`, // Compact travel: 75vh
+      end: () => `+=${Math.round(window.innerHeight * 1.15)}`, // 115vh travel
       pin: true,
       pinSpacing: true,
       scrub: 0.5,
@@ -703,28 +741,9 @@ export default function TransitionLabStage({ onProgressChange }: TransitionLabSt
         {/* Layer 4: Hero Typography Overlay (Phase 1 & 2: Glides out on scroll, restored on reverse) */}
         <div
           ref={heroTextRef}
-          className="pointer-events-none absolute inset-0 z-25 flex flex-col justify-between py-16 px-6 sm:px-12 max-w-7xl mx-auto w-full"
+          className="pointer-events-none absolute inset-0 z-25 opacity-100"
         >
-          <div className="pt-8">
-            <div className="flex items-center gap-3 text-xs font-mono tracking-[0.24em] text-white/50 uppercase">
-              <span className="w-1.5 h-1.5 rounded-full bg-white/70 animate-pulse" />
-              <span>MACRO PHOTOGRAPHY ATELIER</span>
-            </div>
-          </div>
-
-          <div className="text-center space-y-4 my-auto">
-            <h1 className="font-display text-5xl sm:text-7xl md:text-8xl lg:text-9xl font-bold tracking-[-0.04em] uppercase text-white leading-[0.88]">
-              YOU ARE A<br />GALAXY.
-            </h1>
-            <p className="text-xs sm:text-sm font-sans tracking-[0.20em] uppercase text-white/60 max-w-md mx-auto">
-              Every eye is an unrepeatable universe of microscopic stroma.
-            </p>
-          </div>
-
-          <div className="pb-8 flex items-center justify-between text-xs font-mono tracking-[0.20em] text-white/40 uppercase">
-            <span>SCROLL TO UNVEIL GALLERY</span>
-            <span>PONDICHERRY • 2026</span>
-          </div>
+          <HeroUI />
         </div>
       </section>
 

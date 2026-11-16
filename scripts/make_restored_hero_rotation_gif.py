@@ -1,0 +1,51 @@
+import glob
+import os
+from PIL import Image
+
+image_files = [
+    'C:/Users/SuriyaVS/.gemini/antigravity/brain/58b64365-08e0-4343-af70-8254ddcc9d70/screenshots/restored_hero_rotation_qa/01_restored_hero_resting.png',
+    'C:/Users/SuriyaVS/.gemini/antigravity/brain/58b64365-08e0-4343-af70-8254ddcc9d70/screenshots/restored_hero_rotation_qa/02_rotation_p10_deg35.png',
+    'C:/Users/SuriyaVS/.gemini/antigravity/brain/58b64365-08e0-4343-af70-8254ddcc9d70/screenshots/restored_hero_rotation_qa/03_rotation_p20_deg70.png',
+    'C:/Users/SuriyaVS/.gemini/antigravity/brain/58b64365-08e0-4343-af70-8254ddcc9d70/screenshots/restored_hero_rotation_qa/04_rotation_p35_deg125.png',
+    'C:/Users/SuriyaVS/.gemini/antigravity/brain/58b64365-08e0-4343-af70-8254ddcc9d70/screenshots/restored_hero_rotation_qa/05_immersion_p50_layers.png',
+    'C:/Users/SuriyaVS/.gemini/antigravity/brain/58b64365-08e0-4343-af70-8254ddcc9d70/screenshots/restored_hero_rotation_qa/06_immersion_p65_consolidating.png',
+    'C:/Users/SuriyaVS/.gemini/antigravity/brain/58b64365-08e0-4343-af70-8254ddcc9d70/screenshots/restored_hero_rotation_qa/07_transition_p80_seam.png',
+    'C:/Users/SuriyaVS/.gemini/antigravity/brain/58b64365-08e0-4343-af70-8254ddcc9d70/screenshots/restored_hero_rotation_qa/08_gallery_p100_settled.png',
+    'C:/Users/SuriyaVS/.gemini/antigravity/brain/58b64365-08e0-4343-af70-8254ddcc9d70/screenshots/restored_hero_rotation_qa/09_reverse_scroll_restored_hero.png',
+]
+
+durations = [
+    1200, # Frame 1: Restored Hero resting state
+    700,  # Frame 2: Rotation p=0.10 (~35 deg)
+    700,  # Frame 3: Rotation p=0.20 (~70 deg)
+    850,  # Frame 4: Rotation p=0.35 (~125 deg)
+    850,  # Frame 5: Immersion p=0.50 (11 layers)
+    800,  # Frame 6: Immersion p=0.65 (consolidating)
+    900,  # Frame 7: Transition p=0.80 (photographic seam)
+    1200, # Frame 8: Gallery p=1.00 (settled)
+    1200, # Frame 9: Reverse scroll back to hero
+]
+
+frames = []
+for f in image_files:
+    if os.path.exists(f):
+        im = Image.open(f).convert('RGB')
+        im = im.resize((960, 600), Image.Resampling.LANCZOS)
+        im = im.quantize(colors=128, method=Image.Resampling.LANCZOS)
+        frames.append(im)
+    else:
+        print(f"File not found: {f}")
+
+out_local = 'D:/Irisique/recordings/restored_hero_rotation_sequence.gif'
+out_art = 'C:/Users/SuriyaVS/.gemini/antigravity/brain/58b64365-08e0-4343-af70-8254ddcc9d70/recordings/restored_hero_rotation_sequence.gif'
+
+os.makedirs('D:/Irisique/recordings', exist_ok=True)
+os.makedirs('C:/Users/SuriyaVS/.gemini/antigravity/brain/58b64365-08e0-4343-af70-8254ddcc9d70/recordings', exist_ok=True)
+
+if frames:
+    frames[0].save(out_local, save_all=True, append_images=frames[1:], duration=durations[:len(frames)], loop=0, optimize=True)
+    frames[0].save(out_art, save_all=True, append_images=frames[1:], duration=durations[:len(frames)], loop=0, optimize=True)
+    sz = os.path.getsize(out_local) / 1024
+    print(f'Restored Hero Rotation Sequence GIF generated successfully: {sz:.1f} KB at {out_local}')
+else:
+    print('No frames found!')

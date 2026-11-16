@@ -270,38 +270,38 @@ export default function UnifiedIrisHero({
     // ─── 2. Authored 3D Camera Flight Path (Continuous Non-Looping) ───
     const desktopCamPoints = [
       new THREE.Vector3(0.00, 0.00, 6.20),   // p=0.0: Full centered frontal view
-      new THREE.Vector3(0.15, 0.04, 5.80),   // p=0.2: Subtle initial drift & zoom
-      new THREE.Vector3(0.48, -0.15, 4.30),  // p=0.4: Entering gap between layers
-      new THREE.Vector3(0.28, 0.18, 3.10),   // p=0.6: Traversing golden crypts & fibres
-      new THREE.Vector3(-0.18, 0.12, 3.50),  // p=0.8: Parting layers, wide atmospheric framing
-      new THREE.Vector3(0.00, 0.00, 2.20),   // p=1.0: Full forward immersion through optical center
+      new THREE.Vector3(0.12, 0.03, 5.60),   // p=0.2: Subtle initial drift & zoom
+      new THREE.Vector3(0.38, -0.12, 4.20),  // p=0.4: Entering gap between layers
+      new THREE.Vector3(0.22, 0.15, 3.20),   // p=0.6: Traversing golden crypts & fibres
+      new THREE.Vector3(-0.12, 0.08, 3.60),  // p=0.8: Parting layers, wide atmospheric framing
+      new THREE.Vector3(0.00, 0.00, 4.40),   // p=1.0: Frontal alignment for Solo plate handoff
     ];
 
     const desktopTargetPoints = [
       new THREE.Vector3(0.00, 0.00, 0.00),
-      new THREE.Vector3(0.03, -0.01, 0.00),
-      new THREE.Vector3(0.08, -0.03, -0.10),
-      new THREE.Vector3(0.02, 0.03, -0.20),
-      new THREE.Vector3(-0.06, 0.02, -0.25),
-      new THREE.Vector3(0.00, 0.00, -0.80),
+      new THREE.Vector3(0.02, -0.01, 0.00),
+      new THREE.Vector3(0.06, -0.02, -0.10),
+      new THREE.Vector3(0.02, 0.02, -0.20),
+      new THREE.Vector3(-0.04, 0.01, -0.25),
+      new THREE.Vector3(0.00, 0.00, 0.00),
     ];
 
     const mobileCamPoints = [
       new THREE.Vector3(0.00, 0.00, 7.20),
-      new THREE.Vector3(0.10, 0.03, 6.60),
-      new THREE.Vector3(0.22, -0.07, 5.20),
-      new THREE.Vector3(0.14, 0.10, 4.10),
-      new THREE.Vector3(-0.10, 0.06, 4.50),
-      new THREE.Vector3(0.00, 0.00, 2.80),
+      new THREE.Vector3(0.08, 0.02, 6.50),
+      new THREE.Vector3(0.20, -0.06, 5.00),
+      new THREE.Vector3(0.12, 0.08, 4.00),
+      new THREE.Vector3(-0.08, 0.04, 4.40),
+      new THREE.Vector3(0.00, 0.00, 5.20),
     ];
 
     const mobileTargetPoints = [
       new THREE.Vector3(0.00, 0.00, 0.00),
-      new THREE.Vector3(0.02, -0.01, 0.00),
-      new THREE.Vector3(0.05, -0.02, -0.10),
-      new THREE.Vector3(0.02, 0.02, -0.15),
-      new THREE.Vector3(-0.03, 0.01, -0.20),
-      new THREE.Vector3(0.00, 0.00, -0.60),
+      new THREE.Vector3(0.01, -0.01, 0.00),
+      new THREE.Vector3(0.04, -0.01, -0.10),
+      new THREE.Vector3(0.01, 0.01, -0.15),
+      new THREE.Vector3(-0.02, 0.01, -0.20),
+      new THREE.Vector3(0.00, 0.00, 0.00),
     ];
 
     const camCurveDesktop = new THREE.CatmullRomCurve3(desktopCamPoints, false, "catmullrom", 0.5);
@@ -614,7 +614,7 @@ export default function UnifiedIrisHero({
       uScrollProgress: { value: 0 },
       uScrollRotation: { value: 0 },
       uIrisOffset: { value: new THREE.Vector2(0, 0) },
-      uIrisScale: { value: 1.0 },
+      uIrisScale: { value: 0.82 }, // Balanced luxury framing: uncropped circular silhouette with 10% breathing space
       uReducedMotion: { value: prefersReducedMotion ? 1.0 : 0.0 },
       uClickProgress: { value: 0.0 },
       uClickOrigin: { value: new THREE.Vector2(0.5, 0.5) },
@@ -705,8 +705,8 @@ export default function UnifiedIrisHero({
 
       const p = canonicalState.p;
 
-      // Phase 1 & 2: Macro Quad Analytical Projection (Exact inverse of irisLabFragmentShader)
-      if (p <= 0.22) {
+      // Phase 1 & 2: Macro Quad Analytical Projection during Resting Hero and Initial Rotation (Exact inverse of irisLabFragmentShader)
+      if (p <= 0.38) {
         const centeredX = screenX - macroUniforms.uIrisOffset.value.x;
         const centeredY = screenY - macroUniforms.uIrisOffset.value.y;
 
@@ -1045,6 +1045,7 @@ export default function UnifiedIrisHero({
       macroUniforms.uCameraTarget.value.set(-0.16, 0.20);
       macroUniforms.uScrollProgress.value = 0.0;
       macroUniforms.uScrollRotation.value = 0.0;
+      macroUniforms.uIrisScale.value = 0.82;
       macroUniforms.uMasterOpacity.value = 1.0;
 
       if (heroTextRef.current) gsap.set(heroTextRef.current, { opacity: 0, y: 16 });
@@ -1069,7 +1070,7 @@ export default function UnifiedIrisHero({
         pin: true,
         pinSpacing: true,
         start: "top top",
-        end: () => `+=${Math.round(window.innerHeight * 0.75)}`, // Compact ~75vh scroll travel (60–85vh range)
+        end: () => `+=${Math.round(window.innerHeight * 1.15)}`, // Elegant 115vh scroll travel (rotation -> immersion -> seam)
         scrub: 0.6,   // Liquid-smooth 0.6s catchup
         invalidateOnRefresh: true,
         refreshPriority: 10,
@@ -1110,68 +1111,85 @@ export default function UnifiedIrisHero({
     // ─── 9. Continuous Frame Evaluator ───
     const evaluateScene = (p: number, elapsed: number) => {
       const mobile = isMobile;
+      const camCurve = mobile ? camCurveMobile : camCurveDesktop;
+      const targetCurve = mobile ? targetCurveMobile : targetCurveDesktop;
 
-      // ── PHASE 01 & 02: Scroll Activation & Controlled Alignment ──
-      // Controlled rotation that straightens towards frontal orientation as exposure expands
+      // ── ROTATION SEQUENCE: ROTATION BEFORE IMMERSION ──
+      // Phase B (0.00 <= p <= 0.35): Smooth clockwise rotation across ~125 deg while iris remains fully circular
+      // Phase C (0.35 < p <= 0.70): Rotation gently eases to ~150 deg without abrupt stop, blending into stroma immersion
+      // Phase E (0.70 < p <= 1.00): Settles frontally (0 deg) to match Solo specimen artwork
       let scrollRotation = 0;
-      if (p <= 0.38) {
-        scrollRotation = (p / 0.38) * THREE.MathUtils.degToRad(35);
-      } else if (p <= 0.72) {
-        const t = (p - 0.38) / 0.34;
-        scrollRotation = THREE.MathUtils.lerp(THREE.MathUtils.degToRad(35), 0, t);
+      if (p <= 0.35) {
+        const t = p / 0.35;
+        scrollRotation = t * THREE.MathUtils.degToRad(125);
+      } else if (p <= 0.70) {
+        const t = (p - 0.35) / 0.35;
+        const ease = Math.sin(t * Math.PI * 0.5);
+        scrollRotation = THREE.MathUtils.degToRad(125) + ease * THREE.MathUtils.degToRad(25);
       } else {
-        scrollRotation = 0;
+        const t = Math.min(1.0, (p - 0.70) / 0.15);
+        const ease = t * t * (3.0 - 2.0 * t);
+        scrollRotation = THREE.MathUtils.lerp(THREE.MathUtils.degToRad(150), 0, ease);
       }
       macroUniforms.uScrollRotation.value = scrollRotation;
       masterLayerGroup.rotation.z = -scrollRotation;
 
-      // Camera coordinates:
-      // Frontal centering aligns perfectly with the Solo specimen artwork plate center
-      if (p <= 0.15) {
-        const t = p / 0.15;
-        const camZ = THREE.MathUtils.lerp(mobile ? 7.2 : 6.2, mobile ? 6.8 : 5.8, t);
+      // ── CAMERA COORDINATES: RESTING FRONTAL DISTANCE THEN STROMA IMMERSION ──
+      // When p <= 0.35: Camera is strictly centered at Z=6.2 (desktop) / 7.2 (mobile) with mouse hover parallax
+      // When 0.35 < p <= 0.70: Camera travels along 3D CatmullRom curve entering stroma
+      // When p > 0.70: Camera settles frontally for Solo plate handoff
+      if (p <= 0.35) {
+        const camZ = mobile ? 7.2 : 6.2;
         camera.position.set(mouse.x * 0.05, -mouse.y * 0.04, camZ);
         camera.lookAt(0, 0, 0);
-      } else if (p <= 0.72) {
-        const t = (p - 0.15) / 0.57;
-        const camZ = THREE.MathUtils.lerp(mobile ? 6.8 : 5.8, mobile ? 7.0 : 6.6, t);
-        camera.position.set(mouse.x * 0.05 * (1 - t), -mouse.y * 0.04 * (1 - t), camZ);
-        camera.lookAt(0, 0, 0);
+      } else if (p <= 0.70) {
+        const camProgress = (p - 0.35) / 0.35; // [0..1]
+        const camPos = camCurve.getPointAt(camProgress);
+        const camTarget = targetCurve.getPointAt(camProgress);
+
+        camera.position.x = camPos.x + mouse.x * 0.06 * (1 - camProgress);
+        camera.position.y = camPos.y - mouse.y * 0.05 * (1 - camProgress);
+        camera.position.z = THREE.MathUtils.lerp(mobile ? 7.2 : 6.2, camPos.z, camProgress);
+        camera.lookAt(camTarget.x, camTarget.y, camTarget.z);
       } else {
-        camera.position.set(0, 0, mobile ? 7.0 : 6.6);
+        const t = Math.min(1.0, (p - 0.70) / 0.15);
+        const camZ = THREE.MathUtils.lerp(mobile ? 5.2 : 4.4, mobile ? 7.0 : 6.6, t);
+        camera.position.set(0, 0, camZ);
         camera.lookAt(0, 0, 0);
       }
 
-      // ── Macro shader quad smoothly cross-fades into 11 aligned 3D photographic layers (15% - 25%) ──
+      // ── MACRO QUAD CROSS-FADES INTO 11 3D LAYERS (35% - 45%) ──
       let macroQuadOpacity = 1.0;
-      if (p > 0.15 && p <= 0.25) {
-        macroQuadOpacity = 1.0 - (p - 0.15) / 0.10;
-      } else if (p > 0.25) {
+      if (p <= 0.35) {
+        macroQuadOpacity = 1.0;
+      } else if (p <= 0.45) {
+        macroQuadOpacity = 1.0 - (p - 0.35) / 0.10;
+      } else {
         macroQuadOpacity = 0.0;
       }
       macroUniforms.uMasterOpacity.value = macroQuadOpacity;
       macroQuad.visible = macroQuadOpacity > 0.001;
 
-      // ── Atmospheric Fog Density Progression ──
+      // ── ATMOSPHERIC FOG DENSITY PROGRESSION ──
       let fogDensity = 0.03;
-      if (p <= 0.15) {
-        fogDensity = THREE.MathUtils.lerp(0.02, 0.04, p / 0.15);
-      } else if (p <= 0.40) {
-        fogDensity = THREE.MathUtils.lerp(0.04, 0.07, (p - 0.15) / 0.25);
-      } else if (p <= 0.65) {
-        fogDensity = THREE.MathUtils.lerp(0.07, 0.02, (p - 0.40) / 0.25);
+      if (p <= 0.35) {
+        fogDensity = THREE.MathUtils.lerp(0.02, 0.035, p / 0.35);
+      } else if (p <= 0.55) {
+        fogDensity = THREE.MathUtils.lerp(0.035, 0.07, (p - 0.35) / 0.20);
+      } else if (p <= 0.70) {
+        fogDensity = THREE.MathUtils.lerp(0.07, 0.02, (p - 0.55) / 0.15);
       } else {
         fogDensity = 0.0;
       }
       fogMaterial.uniforms.uDensity.value = fogDensity;
       fogMaterial.uniforms.uTime.value = elapsed;
 
-      // ── Optical Refraction Event (at 25% – 50% during aperture expansion) ──
+      // ── OPTICAL REFRACTION EVENT (40% – 65% during layer travel) ──
       let refractShift = 0.0;
       let exposureLift = 0.0;
-      if (p >= 0.20 && p <= 0.55) {
-        const mid = 0.375;
-        const dist = Math.abs(p - mid) / 0.175;
+      if (p >= 0.40 && p <= 0.65) {
+        const mid = 0.525;
+        const dist = Math.abs(p - mid) / 0.125;
         const bell = 0.5 + 0.5 * Math.cos(dist * Math.PI);
         refractShift = bell * 0.0018;
         exposureLift = bell * 0.030;
@@ -1179,36 +1197,36 @@ export default function UnifiedIrisHero({
       fogMaterial.uniforms.uRefractShift.value = refractShift;
       fogMaterial.uniforms.uExposure.value = exposureLift;
 
-      // ── Particles Animation & Exit Fade ──
+      // ── PARTICLES ANIMATION & EXIT FADE ──
       particleMaterial.uniforms.uTime.value = elapsed;
-      if (p > 0.50) {
-        const tPart = Math.min(1.0, (p - 0.50) / 0.20);
+      if (p > 0.55) {
+        const tPart = Math.min(1.0, (p - 0.55) / 0.18);
         particleMaterial.opacity = THREE.MathUtils.lerp(0.7, 0.0, tPart);
       } else {
         particleMaterial.opacity = 0.7;
       }
 
-      // ── Update 11 3D Layer Meshes ──
+      // ── 11 3D LAYER MESHES UPDATE ──
       layerItems.forEach((item, idx) => {
         const { mesh, spec, material } = item;
         const sep = spec.sepOffset;
 
         let posX = 0, posY = 0, posZ = 0;
         let rotZ = 0, rotX = 0, rotY = 0;
-        let scale = 1.0;
+        let scale = 0.82; // matches macro quad
         let opacity = 1.0;
         let erosion = 0.0;
         let highlight = 0.0;
 
-        if (p <= 0.15) {
-          // Assembled at origin matching complete iris
+        if (p <= 0.35) {
+          // Assembled at origin matching complete circular iris, zero Z-separation
           posX = 0; posY = 0; posZ = 0;
           rotZ = 0; rotX = 0; rotY = 0;
-          scale = 1.0;
-          opacity = 1.0;
-        } else if (p <= 0.38) {
-          // Organic Unfolding: Layers separate along 3D Z-depth
-          const t = (p - 0.15) / 0.23;
+          scale = 0.82;
+          opacity = 0.0; // Macro quad covers this phase
+        } else if (p <= 0.55) {
+          // Phase C: Organic Unfolding - Layers separate along 3D Z-depth
+          const t = (p - 0.35) / 0.20;
           const ease = t * t * (3.0 - 2.0 * t); // smoothstep
           posX = sep.x * ease;
           posY = sep.y * ease;
@@ -1216,12 +1234,12 @@ export default function UnifiedIrisHero({
           rotZ = sep.rotZ * ease;
           rotX = sep.rotX * ease;
           rotY = sep.rotY * ease;
-          scale = 1.0 + (sep.scale - 1.0) * ease;
-          opacity = 1.0;
+          scale = THREE.MathUtils.lerp(0.82, sep.scale, ease);
+          opacity = Math.min(1.0, (p - 0.35) / 0.08);
           highlight = Math.sin(ease * Math.PI) * 0.25;
-        } else if (p <= 0.65) {
-          // Transformation & Consolidation: Layers draw together to match Solo plate diameter
-          const t = (p - 0.38) / 0.27;
+        } else if (p <= 0.70) {
+          // Phase D: Transformation & Consolidation - Layers draw together to match Solo plate diameter
+          const t = (p - 0.55) / 0.15;
           const ease = t * t * (3.0 - 2.0 * t);
           posX = THREE.MathUtils.lerp(sep.x, 0, ease);
           posY = THREE.MathUtils.lerp(sep.y, 0, ease);
@@ -1231,21 +1249,21 @@ export default function UnifiedIrisHero({
           rotY = THREE.MathUtils.lerp(sep.rotY, 0, ease);
           scale = THREE.MathUtils.lerp(sep.scale, 1.0, ease);
           opacity = 1.0;
-        } else if (p <= 0.85) {
-          // STATE D: Matched Artwork Handoff (0.65 - 0.85)
+        } else if (p <= 0.88) {
+          // Phase E: Matched Artwork Handoff (0.70 - 0.88)
           // WebGL stroma layers dissolve smoothly while Solo artwork plate cross-fades in
-          const t = (p - 0.65) / 0.20;
+          const t = (p - 0.70) / 0.18;
           posX = 0; posY = 0; posZ = 0;
           rotZ = 0; rotX = 0; rotY = 0;
           scale = 1.0;
           opacity = Math.max(0.0, 1.0 - t);
         } else {
-          // STATE E: Gallery Fully Established (0.85 - 1.00)
+          // STATE E: Gallery Fully Established (0.88 - 1.00)
           opacity = 0.0;
         }
 
         // Apply subtle micro-motion drift only when visible
-        if (p > 0.15 && p < 0.65) {
+        if (p > 0.35 && p < 0.70) {
           const drift = Math.sin(elapsed * 0.7 + idx * 0.8) * 0.008;
           posX += drift * 0.5;
           posY += drift;
@@ -1261,8 +1279,16 @@ export default function UnifiedIrisHero({
         material.uniforms.uRefractShift.value = refractShift;
       });
 
-      // ── Asymmetric Photographic Seam Coordinator (Codrops / Mersis Transition) ──
-      const { clipPath, edgeLine } = computePhotographicSeamPath(p);
+      // ── ASYMMETRIC PHOTOGRAPHIC SEAM COORDINATOR (Codrops / Mersis Transition: 0.70 -> 0.94) ──
+      let seamP = 0.0;
+      if (p <= 0.70) {
+        seamP = 0.0;
+      } else if (p >= 0.94) {
+        seamP = 1.0;
+      } else {
+        seamP = (p - 0.70) / 0.24;
+      }
+      const { clipPath, edgeLine } = computePhotographicSeamPath(seamP);
 
       if (exposureClipPathRef.current) {
         exposureClipPathRef.current.setAttribute("d", clipPath);
@@ -1273,11 +1299,11 @@ export default function UnifiedIrisHero({
 
       // Gallery Clip-path: hidden at hero start, clipped by seam during transition, completely cleared (none) when settled
       if (exposureOverlayRef.current) {
-        if (p <= 0.02) {
+        if (p <= 0.70) {
           exposureOverlayRef.current.style.visibility = "hidden";
         } else {
           exposureOverlayRef.current.style.visibility = "visible";
-          if (p >= 0.90) {
+          if (p >= 0.94) {
             exposureOverlayRef.current.style.clipPath = "none";
           } else {
             exposureOverlayRef.current.style.clipPath = "url(#photographicSeamClip)";
@@ -1285,12 +1311,12 @@ export default function UnifiedIrisHero({
         }
       }
 
-      // STATE D: Matched Solo Artwork Plate Cross-fade (0.65 -> 0.85)
+      // STATE D: Matched Solo Artwork Plate Cross-fade (0.72 -> 0.88)
       if (matchedSoloPlateRef.current) {
-        if (p <= 0.65) {
+        if (p <= 0.72) {
           matchedSoloPlateRef.current.style.opacity = "0";
-        } else if (p <= 0.85) {
-          const t = (p - 0.65) / 0.20;
+        } else if (p <= 0.88) {
+          const t = (p - 0.72) / 0.16;
           const s = t * t * (3.0 - 2.0 * t);
           matchedSoloPlateRef.current.style.opacity = s.toFixed(3);
         } else {
@@ -1298,15 +1324,15 @@ export default function UnifiedIrisHero({
         }
       }
 
-      // STATE E: Emerging Gallery Heading and Category Controls (0.75 -> 1.00)
+      // STATE E: Emerging Gallery Heading and Category Controls (0.80 -> 1.00)
       if (emergingGalleryHeaderRef.current && emergingCategoryBarRef.current) {
-        if (p <= 0.75) {
+        if (p <= 0.80) {
           emergingGalleryHeaderRef.current.style.opacity = "0";
           emergingGalleryHeaderRef.current.style.transform = "translateY(20px)";
           emergingCategoryBarRef.current.style.opacity = "0";
           emergingCategoryBarRef.current.style.transform = "translateY(20px)";
         } else if (p < 1.00) {
-          const t = (p - 0.75) / 0.25;
+          const t = (p - 0.80) / 0.20;
           emergingGalleryHeaderRef.current.style.opacity = t.toFixed(3);
           emergingGalleryHeaderRef.current.style.transform = `translateY(${((1 - t) * 20).toFixed(1)}px)`;
           emergingCategoryBarRef.current.style.opacity = t.toFixed(3);
@@ -1321,11 +1347,11 @@ export default function UnifiedIrisHero({
 
       // Canvas pointer-events and opacity: enabled during hero, dissolved when Solo plate settled
       if (canvas) {
-        if (p <= 0.85) {
+        if (p <= 0.88) {
           canvas.style.opacity = "1";
           canvas.style.pointerEvents = "auto";
         } else {
-          const tDissolve = (p - 0.85) / 0.15;
+          const tDissolve = (p - 0.88) / 0.12;
           canvas.style.opacity = Math.max(0, 1.0 - tDissolve).toFixed(3);
           canvas.style.pointerEvents = "none";
         }
@@ -1333,7 +1359,7 @@ export default function UnifiedIrisHero({
 
       // Interaction Availability on Gallery
       if (exposureOverlayRef.current) {
-        exposureOverlayRef.current.style.pointerEvents = p >= 0.85 ? "auto" : "none";
+        exposureOverlayRef.current.style.pointerEvents = p >= 0.88 ? "auto" : "none";
       }
     };
 
