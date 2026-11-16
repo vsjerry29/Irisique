@@ -15,58 +15,88 @@ if (typeof window !== "undefined") {
   gsap.registerPlugin(ScrollTrigger);
 }
 
-// ─── Codrops / Mersis Photographic Seam Transition Engine ───
-// An asymmetric diagonal seam sweeping from lower-right (u+v > 2) towards top-left (u+v < 0).
-// Perturbed by a gentle organic low-frequency wave for an authentic paper-tear / photographic edge.
-// Uncovers warm ivory `#F4F1EA` behind the iris. The iris pupil remains pitch-black (#000000) at all times.
-export function computePhotographicSeamPath(p: number): {
-  clipPath: string;
-  edgeLine: string;
-} {
-  if (p <= 0.02) {
-    return {
-      clipPath: "M 1.5 1.5 Z",
-      edgeLine: "M 1.5 1.5 Z",
-    };
+// ─── Photographic Grain Development Shaders ───
+// Simulates an authentic darkroom exposure: multi-scale spatial exposure density (stable simplex noise)
+// and delicate photographic silver grain developing organically into warm ivory (#F4F1EA).
+const devVertexShader = /* glsl */ `
+  varying vec2 vUv;
+  void main() {
+    vUv = uv;
+    gl_Position = vec4(position.xy, 0.0, 1.0);
   }
-  if (p >= 0.90) {
-    return {
-      clipPath: "M -0.3 -0.3 L 1.3 -0.3 L 1.3 1.3 L -0.3 1.3 Z",
-      edgeLine: "M -0.3 -0.3 Z",
-    };
-  }
+`;
 
-  // Smoothstep progress from 0.02 to 0.90
-  const t = (p - 0.02) / 0.88;
-  const s = t * t * (3.0 - 2.0 * t);
-  // Diagonal offset: at s=0, c=2.35 (outside lower-right); at s=1, c=-0.35 (past top-left)
-  const c = 2.35 - s * 2.70;
+const devFragmentShader = /* glsl */ `
+  precision highp float;
+  varying vec2 vUv;
+  uniform float uDevProgress;
+  uniform vec2 uResolution;
+  uniform float uTime;
 
-  const steps = 18;
-  const pts: [number, number][] = [];
+  // 2D Simplex Noise
+  vec3 mod289(vec3 x) { return x - floor(x * (1.0 / 289.0)) * 289.0; }
+  vec2 mod289(vec2 x) { return x - floor(x * (1.0 / 289.0)) * 289.0; }
+  vec3 permute(vec3 x) { return mod289(((x * 34.0) + 1.0) * x); }
 
-  for (let i = 0; i <= steps; i++) {
-    // sigma is orthogonal coordinate (u - v)
-    const sigma = 1.6 - (3.2 * i) / steps;
-    // Low-frequency gentle photographic edge undulation
-    const delta = 0.055 * Math.sin(sigma * 2.6 + 0.4) + 0.030 * Math.cos(sigma * 4.2);
-    const u = (c + sigma + delta) / 2.0;
-    const v = (c - sigma + delta) / 2.0;
-    pts.push([Math.round(u * 10000) / 10000, Math.round(v * 10000) / 10000]);
-  }
-
-  // Build the edge line (for the fine photographic shadow stroke)
-  let edgeLine = `M ${pts[0][0]} ${pts[0][1]}`;
-  for (let i = 1; i < pts.length; i++) {
-    edgeLine += ` L ${pts[i][0]} ${pts[i][1]}`;
+  float snoise(vec2 v) {
+    const vec4 C = vec4(0.211324865405187, 0.366025403784439,
+                       -0.577350269189626, 0.024390243902439);
+    vec2 i  = floor(v + dot(v, C.yy));
+    vec2 x0 = v - i + dot(i, C.xx);
+    vec2 i1 = (x0.x > x0.y) ? vec2(1.0, 0.0) : vec2(0.0, 1.0);
+    vec4 x12 = x0.xyxy + C.xxzz;
+    x12.xy -= i1;
+    i = mod289(i);
+    vec3 p = permute(permute(i.y + vec3(0.0, i1.y, 1.0)) + i.x + vec3(0.0, i1.x, 1.0));
+    vec3 m = max(0.5 - vec3(dot(x0, x0), dot(x12.xy, x12.xy), dot(x12.zw, x12.zw)), 0.0);
+    m = m * m; m = m * m;
+    return 42.0 * dot(m, vec3(dot(p.x == 0.0 ? vec2(0.0) : x0, vec2(1.0)),
+                              dot(x12.xy, vec2(1.0)),
+                              dot(x12.zw, vec2(1.0))));
   }
 
-  // Build closed polygon covering bottom-right quadrant up to the seam
-  let clipPath = edgeLine;
-  clipPath += " L -0.35 1.35 L 1.35 1.35 L 1.35 -0.35 Z";
+  void main() {
+    if (uDevProgress <= 0.0001) {
+      discard;
+    }
 
-  return { clipPath, edgeLine };
-}
+    vec2 uv = vUv;
+    float aspect = uResolution.x / max(uResolution.y, 1.0);
+
+    // Multi-scale stable spatial exposure density (stable with respect to screen)
+    vec2 noiseCoord = vec2(uv.x * aspect, uv.y) * 2.2;
+    float n1 = snoise(noiseCoord);
+    float n2 = snoise(noiseCoord * 2.1 + vec2(1.4, 3.2)) * 0.5;
+    float densityField = (n1 + n2) * 0.22 + (0.5 + 0.5 * uv.y);
+
+    // Organic photographic development wavefront
+    float threshold = mix(-0.25, 1.35, uDevProgress);
+    float exposure = smoothstep(threshold - 0.35, threshold + 0.35, densityField);
+
+    // Fine photographic silver grain (subtle, non-distracting)
+    float grain = fract(sin(dot(gl_FragCoord.xy, vec2(12.9898, 78.233))) * 43758.5453);
+    float grainIntensity = (1.0 - exposure) * exposure * 0.12 * (1.0 - uDevProgress * 0.5);
+
+    // Colors
+    vec3 darkroomBlack = vec3(0.03529, 0.03529, 0.03529); // #090909
+    vec3 warmIvory = vec3(0.95686, 0.94510, 0.91765);    // #F4F1EA
+    vec3 silverMidtone = vec3(0.56, 0.52, 0.47);          // Warm silver halide
+
+    // Chemical tone mapping: black -> silver midtone -> warm ivory
+    vec3 developedColor;
+    if (exposure < 0.5) {
+      developedColor = mix(darkroomBlack, silverMidtone, exposure * 2.0);
+    } else {
+      developedColor = mix(silverMidtone, warmIvory, (exposure - 0.5) * 2.0);
+    }
+
+    // Apply silver grain texture
+    developedColor += (grain - 0.5) * grainIntensity;
+
+    float alpha = smoothstep(0.0, 0.15, uDevProgress);
+    gl_FragColor = vec4(clamp(developedColor, 0.0, 1.0), alpha);
+  }
+`;
 
 // ─── 11 Anatomical Layer Definitions ───
 interface LayerSpec {
@@ -210,8 +240,6 @@ export default function UnifiedIrisHero({
 
   // Optical Exposure Stage & Handoff Refs
   const exposureOverlayRef = useRef<HTMLDivElement>(null);
-  const exposureClipPathRef = useRef<SVGPathElement>(null);
-  const seamEdgeLineRef = useRef<SVGPathElement>(null);
   const matchedSoloPlateRef = useRef<HTMLDivElement>(null);
   const emergingGalleryHeaderRef = useRef<HTMLDivElement>(null);
   const emergingCategoryBarRef = useRef<HTMLDivElement>(null);
@@ -617,6 +645,27 @@ export default function UnifiedIrisHero({
     macroQuad.renderOrder = 50; // Sits above background and particles during Phase 1 & 2
     scene.add(macroQuad);
 
+    // D. Photographic Development Fullscreen Quad (Darkroom Silver Halide Grain & Warm Ivory Reveal)
+    const devUniforms = {
+      uDevProgress: { value: 0.0 },
+      uResolution: { value: new THREE.Vector2(width * dpr, height * dpr) },
+      uTime: { value: 0.0 },
+    };
+
+    const devMaterial = new THREE.ShaderMaterial({
+      vertexShader: devVertexShader,
+      fragmentShader: devFragmentShader,
+      uniforms: devUniforms,
+      depthTest: false,
+      depthWrite: false,
+      transparent: true,
+    });
+
+    const devQuad = new THREE.Mesh(new THREE.PlaneGeometry(2, 2), devMaterial);
+    devQuad.renderOrder = 60; // Sits above macro quad, 3D anatomical layers, and darkroom pupil
+    devQuad.visible = false;
+    scene.add(devQuad);
+
     sceneReady = true;
     tryStartEntrance();
 
@@ -630,6 +679,7 @@ export default function UnifiedIrisHero({
       camera.updateProjectionMatrix();
       macroUniforms.uResolution.value.set(width * dpr, height * dpr);
       fogMaterial.uniforms.uResolution.value.set(width, height);
+      devUniforms.uResolution.value.set(width * dpr, height * dpr);
 
       const metrics = getRestingIrisMetrics(width, height);
       if (canonicalState.p <= 0.02) {
@@ -1286,58 +1336,60 @@ export default function UnifiedIrisHero({
         material.uniforms.uHighlight.value = highlight;
       });
 
-      // ── 8. IMMEDIATE SEAM TRANSITION OUT OF THE BLACK PUPIL INTO THE WARM-IVORY GALLERY ──
-      // Phase E (0.74 -> 1.00): As the pupil fills the screen, the warm-ivory gallery emerges immediately!
-      // Zero long black hold, zero empty particle phase. Maximum transition-only black hold <= 5vh scroll travel.
-      let seamP = 0.0;
-      if (p <= 0.74) {
-        seamP = 0.0;
-      } else if (p >= 1.00) {
-        seamP = 1.0;
-      } else {
-        seamP = (p - 0.74) / 0.26;
-      }
-      const { clipPath, edgeLine } = computePhotographicSeamPath(seamP);
+      // ── 8. PHOTOGRAPHIC GRAIN DEVELOPMENT OUT OF DARKROOM PUPIL INTO WARM-IVORY GALLERY ──
+      // Phase E (0.72 -> 1.00): Silver halide grain and spatial exposure develop organically.
+      // - Solo artwork plate materializes during mid-exposure (devP 0.15 -> 0.70)
+      // - Heading and category tabs enter (devP 0.40 -> 0.85)
+      // - Full settlement at devP >= 0.90 -> 1.00
+      if (p <= 0.72) {
+        devUniforms.uDevProgress.value = 0.0;
+        devQuad.visible = false;
 
-      if (exposureClipPathRef.current) {
-        exposureClipPathRef.current.setAttribute("d", clipPath);
-      }
-      if (seamEdgeLineRef.current) {
-        seamEdgeLineRef.current.setAttribute("d", edgeLine);
-      }
-
-      // Gallery clip-path
-      if (exposureOverlayRef.current) {
-        if (p < 0.74) {
+        if (exposureOverlayRef.current) {
           exposureOverlayRef.current.style.visibility = "hidden";
           exposureOverlayRef.current.style.pointerEvents = "none";
-        } else {
+        }
+        if (matchedSoloPlateRef.current) {
+          matchedSoloPlateRef.current.style.opacity = "0";
+        }
+        if (emergingGalleryHeaderRef.current && emergingCategoryBarRef.current) {
+          emergingGalleryHeaderRef.current.style.opacity = "0";
+          emergingCategoryBarRef.current.style.opacity = "0";
+        }
+      } else {
+        devQuad.visible = true;
+        const devP = Math.min(1.0, (p - 0.72) / 0.28);
+        devUniforms.uDevProgress.value = devP;
+
+        if (exposureOverlayRef.current) {
           exposureOverlayRef.current.style.visibility = "visible";
-          exposureOverlayRef.current.style.pointerEvents = "auto";
-          if (p >= 1.00) {
-            exposureOverlayRef.current.style.clipPath = "none";
-          } else {
-            exposureOverlayRef.current.style.clipPath = "url(#photographicSeamClip)";
-          }
+          exposureOverlayRef.current.style.pointerEvents = devP >= 0.85 ? "auto" : "none";
+        }
+
+        // 1. Artwork Plate emerges during mid-exposure (devP 0.15 -> 0.70)
+        if (matchedSoloPlateRef.current) {
+          const plateP = Math.min(1.0, Math.max(0.0, (devP - 0.15) / 0.55));
+          const plateEase = plateP * plateP * (3.0 - 2.0 * plateP);
+          matchedSoloPlateRef.current.style.opacity = String(plateEase);
+          matchedSoloPlateRef.current.style.transform = `scale(${0.98 + 0.02 * plateEase})`;
+        }
+
+        // 2. Header and Category Tabs emerge (devP 0.40 -> 0.85)
+        if (emergingGalleryHeaderRef.current && emergingCategoryBarRef.current) {
+          const textP = Math.min(1.0, Math.max(0.0, (devP - 0.40) / 0.45));
+          const textEase = textP * textP * (3.0 - 2.0 * textP);
+          emergingGalleryHeaderRef.current.style.opacity = String(textEase);
+          emergingGalleryHeaderRef.current.style.transform = `translateY(${(-12 * (1.0 - textEase)).toFixed(1)}px)`;
+          emergingCategoryBarRef.current.style.opacity = String(textEase);
+          emergingCategoryBarRef.current.style.transform = `translateY(${(-8 * (1.0 - textEase)).toFixed(1)}px)`;
         }
       }
 
-      // Gallery elements: fully established and interactive
-      if (matchedSoloPlateRef.current) {
-        matchedSoloPlateRef.current.style.opacity = "1";
-      }
-      if (emergingGalleryHeaderRef.current && emergingCategoryBarRef.current) {
-        emergingGalleryHeaderRef.current.style.opacity = "1";
-        emergingGalleryHeaderRef.current.style.transform = "translateY(0px)";
-        emergingCategoryBarRef.current.style.opacity = "1";
-        emergingCategoryBarRef.current.style.transform = "translateY(0px)";
-      }
-
-      // Canvas pointer-events and visibility: active during hero, hidden when gallery settles
+      // Canvas pointer-events and visibility
       if (canvas) {
-        canvas.style.pointerEvents = p < 0.74 ? "auto" : "none";
-        canvas.style.opacity = p >= 1.00 ? "0" : "1";
-        canvas.style.visibility = p >= 1.00 ? "hidden" : "visible";
+        canvas.style.pointerEvents = p < 0.72 ? "auto" : "none";
+        canvas.style.opacity = "1";
+        canvas.style.visibility = "visible";
       }
     };
 
@@ -1352,6 +1404,7 @@ export default function UnifiedIrisHero({
 
       // Update macro entrance uniforms during Phase 1 & 2
       macroUniforms.uTime.value = elapsed;
+      devUniforms.uTime.value = elapsed;
       macroUniforms.uIntroProgress.value = introState.progress;
       macroUniforms.uIntroZoom.value = introState.zoom;
       macroUniforms.uCameraTarget.value.set(introState.targetX, introState.targetY);
@@ -1427,6 +1480,7 @@ export default function UnifiedIrisHero({
       particleMaterial.dispose();
       fogMaterial.dispose();
       macroMaterial.dispose();
+      devMaterial.dispose();
       layerItems.forEach((item) => {
         item.material.dispose();
       });
@@ -1457,11 +1511,11 @@ export default function UnifiedIrisHero({
         <div className="absolute inset-0 bg-[#090909] z-0 pointer-events-none" />
 
         {/* Layer 1: Emerging Gallery Content (Unconstrained Natural Layout)
-            Clipped by Asymmetric Photographic Seam during transition, unclipped (none) at p >= 0.94 */}
+            Developed by Photographic Grain Reveal, zero hard cuts or diagonal seams */}
         <div
           ref={exposureOverlayRef}
           className="absolute inset-0 w-full h-full overflow-hidden pointer-events-auto flex flex-col justify-between z-[25]"
-          style={{ clipPath: "url(#photographicSeamClip)", zIndex: 25 }}
+          style={{ zIndex: 25 }}
         >
           <ArtOfIris
             isEmbeddedInHero={true}
@@ -1471,34 +1525,8 @@ export default function UnifiedIrisHero({
           />
         </div>
 
-        {/* Layer 2: SVG Seam ClipPath and Organic Shadow Line */}
-        <svg
-          className="absolute inset-0 w-full h-full pointer-events-none z-[26] overflow-visible"
-          style={{ zIndex: 26 }}
-          viewBox="0 0 1 1"
-          preserveAspectRatio="none"
-          aria-hidden="true"
-        >
-          <defs>
-            <clipPath id="photographicSeamClip" clipPathUnits="objectBoundingBox">
-              <path ref={exposureClipPathRef} d="M 1.5 1.5 Z" />
-            </clipPath>
-            <filter id="seamShadow" x="-20%" y="-20%" width="140%" height="140%">
-              <feDropShadow dx="-0.003" dy="0.003" stdDeviation="0.004" floodColor="#090909" floodOpacity="0.25" />
-            </filter>
-          </defs>
-          <path
-            ref={seamEdgeLineRef}
-            d="M 1.5 1.5 Z"
-            fill="none"
-            stroke="#D5D0C6"
-            strokeWidth="0.0028"
-            filter="url(#seamShadow)"
-          />
-        </svg>
-
-        {/* Layer 3: WebGL Iris Canvas (Transparent Background, Pitch-Black Pupil, Alpha: true)
-            Renders on z-20 above the background & seam, so pupil is NEVER obscured or turned white */}
+        {/* Layer 2: WebGL Iris & Photographic Development Canvas (Transparent Background, Pitch-Black Pupil, Alpha: true)
+            Renders on z-20. At Phase E, darkroom silver grain develops into warm ivory (#F4F1EA) behind gallery layout */}
         <canvas
           ref={canvasRef}
           className="absolute inset-0 w-full h-full block z-20 pointer-events-auto"

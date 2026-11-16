@@ -7,6 +7,7 @@ import { createPortal } from "react-dom";
 import { ArrowUpRight, X } from "lucide-react";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
+import ArtworkStageShader from "./ArtworkStageShader";
 
 export interface ArtworkComposition {
   id: "solo" | "couple" | "family";
@@ -16,9 +17,6 @@ export interface ArtworkComposition {
   summary: string;
   dimensions: string;
   image: string;
-  aspect: string;
-  maxWidthClass: string;
-  containerShape: string;
 }
 
 const COMPOSITIONS: ArtworkComposition[] = [
@@ -28,11 +26,8 @@ const COMPOSITIONS: ArtworkComposition[] = [
     category: "SOLO COMPOSITION",
     title: "SINGULAR MICROCOSM",
     summary: "An intimate macroscopic exploration of an individual stroma.",
-    dimensions: "Square Format • Up to 100 × 100 cm",
+    dimensions: "Square Masterpiece • 100 × 100 cm",
     image: "/assets/gallery/iris_sapphire.webp",
-    aspect: "aspect-square",
-    maxWidthClass: "max-w-2xl lg:max-w-3xl",
-    containerShape: "rounded-full overflow-hidden bg-[#090909]",
   },
   {
     id: "couple",
@@ -40,11 +35,8 @@ const COMPOSITIONS: ArtworkComposition[] = [
     category: "COUPLE COMPOSITION",
     title: "DUAL HARMONY",
     summary: "Two distinct irises converging in natural visual equilibrium.",
-    dimensions: "Panoramic Diptych • Up to 160 × 80 cm",
+    dimensions: "Panoramic Diptych • 160 × 90 cm",
     image: "/assets/couple/couple_artwork_final.webp",
-    aspect: "aspect-[16/9]",
-    maxWidthClass: "max-w-2xl lg:max-w-3xl",
-    containerShape: "rounded-2xl overflow-hidden bg-[#090909]",
   },
   {
     id: "family",
@@ -52,11 +44,8 @@ const COMPOSITIONS: ArtworkComposition[] = [
     category: "FAMILY COMPOSITION",
     title: "COSMIC CONSTELLATION",
     summary: "Three individual irises, composed into one enduring artwork.",
-    dimensions: "Grand Horizon • Up to 200 × 90 cm",
+    dimensions: "Horizon Triptych • 200 × 90 cm",
     image: "/assets/art/family_artwork_final.webp",
-    aspect: "aspect-[16/9]",
-    maxWidthClass: "max-w-3xl lg:max-w-4xl",
-    containerShape: "rounded-2xl overflow-hidden bg-[#090909]",
   },
 ];
 
@@ -76,7 +65,6 @@ export default function ArtOfIris({
   categoryBarRef: externalCategoryBarRef,
 }: ArtOfIrisProps = {}) {
   const [activeId, setActiveId] = useState<"solo" | "couple" | "family">("solo");
-  const [incomingId, setIncomingId] = useState<"solo" | "couple" | "family" | null>(null);
   const [isDetailOpen, setIsDetailOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
 
@@ -87,7 +75,6 @@ export default function ArtOfIris({
   const headlineRef = useRef<HTMLHeadingElement>(null);
   const artworkStageRef = useRef<HTMLDivElement>(null);
   const activeImageRef = useRef<HTMLDivElement>(null);
-  const incomingImageRef = useRef<HTMLDivElement>(null);
 
   const setHeaderRowRef = useCallback((node: HTMLDivElement | null) => {
     internalHeaderRowRef.current = node;
@@ -121,7 +108,6 @@ export default function ArtOfIris({
   const closeButtonRef = useRef<HTMLButtonElement>(null);
 
   const activeComp = COMPOSITIONS.find((c) => c.id === activeId)!;
-  const incomingComp = incomingId ? COMPOSITIONS.find((c) => c.id === incomingId) : null;
 
   const transitionTimelineRef = useRef<gsap.core.Timeline | null>(null);
 
@@ -202,68 +188,9 @@ export default function ArtOfIris({
 
   // ─── Directional & Interruptible Masked Composition Transition ───
   const triggerTransition = useCallback((targetId: "solo" | "couple" | "family") => {
-    if (targetId === activeIdRef.current && !incomingId) return;
-
-    if (transitionTimelineRef.current) {
-      transitionTimelineRef.current.kill();
-    }
-
-    const currentOrder = COMP_ORDER[activeIdRef.current] ?? 0;
-    const targetOrder = COMP_ORDER[targetId] ?? 0;
-    const isMovingRight = targetOrder >= currentOrder;
-
-    setIncomingId(targetId);
-
-    requestAnimationFrame(() => {
-      const tl = gsap.timeline({
-        onComplete: () => {
-          setActiveId(targetId);
-          setIncomingId(null);
-          if (activeImageRef.current) {
-            gsap.set(activeImageRef.current, { clearProps: "all" });
-            gsap.set(activeImageRef.current, { opacity: 1, filter: "none", x: 0 });
-          }
-        },
-      });
-
-      transitionTimelineRef.current = tl;
-
-      // 1. Existing artwork: restrained directional spatial shift & soft exit
-      if (activeImageRef.current) {
-        tl.to(
-          activeImageRef.current,
-          {
-            x: isMovingRight ? -24 : 24,
-            scale: 0.97,
-            opacity: 0,
-            duration: 0.38,
-            ease: "power2.inOut",
-          },
-          0
-        );
-      }
-
-      // 2. Incoming artwork: directional entrance with smooth settling inertia
-      if (incomingImageRef.current) {
-        tl.fromTo(
-          incomingImageRef.current,
-          {
-            x: isMovingRight ? 28 : -28,
-            scale: 1.03,
-            opacity: 0,
-          },
-          {
-            x: 0,
-            scale: 1.0,
-            opacity: 1,
-            duration: 0.52,
-            ease: "power2.out",
-          },
-          0.06
-        );
-      }
-    });
-  }, [incomingId]);
+    if (targetId === activeIdRef.current) return;
+    setActiveId(targetId);
+  }, []);
 
   // ─── Primary Hover Preview Handlers (Debounced 65ms) ───
   const handleTabMouseEnter = (id: "solo" | "couple" | "family") => {
@@ -326,16 +253,18 @@ export default function ArtOfIris({
       ref={sectionRef}
       id="art"
       data-theme="light"
-      className="relative z-30 w-full h-full min-h-screen bg-[#F4F1EA] text-[#090909] select-none"
+      className={`relative z-30 w-full ${
+        isEmbeddedInHero ? "h-full bg-transparent overflow-hidden" : "min-h-screen bg-[#F4F1EA]"
+      } text-[#090909] select-none`}
     >
       {/* ─── Architectural Warm Paper Surface Layer (Zero harsh horizontal cuts, viewport fitted) ─── */}
       <div
         ref={surfaceRef}
         className={`relative w-full ${
           isEmbeddedInHero
-            ? "h-full py-5 sm:py-7 lg:py-8 px-6 sm:px-10 md:px-14 lg:px-20 overflow-hidden flex flex-col justify-between"
-            : "min-h-screen py-20 sm:py-28 md:py-32 px-6 sm:px-10 md:px-16 lg:px-24 flex flex-col justify-between overflow-visible"
-        } bg-[#F4F1EA]`}
+            ? "h-full py-3 sm:py-5 lg:py-6 px-6 sm:px-10 md:px-14 lg:px-20 overflow-hidden flex flex-col justify-between bg-transparent"
+            : "min-h-screen py-20 sm:py-28 md:py-32 px-6 sm:px-10 md:px-16 lg:px-24 flex flex-col justify-between overflow-visible bg-[#F4F1EA]"
+        }`}
       >
         {/* ─── Two Halves Asymmetrical Minimal Header Row ─── */}
         <div
@@ -369,7 +298,7 @@ export default function ArtOfIris({
         >
           <div className="flex items-center gap-8 sm:gap-10">
             {COMPOSITIONS.map((comp) => {
-              const isActive = (incomingId || activeId) === comp.id;
+              const isActive = activeId === comp.id;
               return (
                 <button
                   key={comp.id}
@@ -414,7 +343,7 @@ export default function ArtOfIris({
           </button>
         </div>
 
-        {/* ─── Specimen Artwork Placement: 100% Opacity, Deep Black Contrast, Zero Dimming ─── */}
+        {/* ─── Unified 16:9 Photographic Stage (Same Outer Dimensions & Zero Border Radius) ─── */}
         <div
           className={`max-w-7xl mx-auto w-full my-auto ${
             isEmbeddedInHero ? "py-1 flex-1 min-h-0" : "py-6 sm:py-10 md:py-12"
@@ -424,57 +353,33 @@ export default function ArtOfIris({
         >
           <div
             ref={artworkStageRef}
-            className={`w-full ${activeComp.maxWidthClass} relative flex flex-col items-center opacity-100 will-change-transform`}
+            className={`w-full ${
+              isEmbeddedInHero ? "max-w-2xl lg:max-w-3xl xl:max-w-[820px]" : "max-w-4xl"
+            } relative flex flex-col items-center opacity-100 will-change-transform`}
             style={{ opacity: 1 }}
           >
-            {/* Active Artwork Plate */}
+            {/* Unified WebGL Photographic Stage with Refractive Fibre Reveal */}
             <div
               ref={setSoloPlateRef}
               data-artwork-plate="true"
-              onClick={() => setIsDetailOpen(true)}
-              className={`relative w-full ${activeComp.aspect} ${activeComp.containerShape} ${
-                isEmbeddedInHero ? "max-h-[38vh] sm:max-h-[40vh] lg:max-h-[42vh]" : "max-h-[72vh]"
-              } cursor-pointer group shadow-2xl`}
-              style={{ opacity: isEmbeddedInHero ? 0 : 1, filter: "none" }}
-              title="Click to view artwork fullscreen"
+              className="w-full relative shadow-2xl overflow-hidden bg-[#090909]"
+              style={{ opacity: isEmbeddedInHero ? 0 : 1, filter: "none", borderRadius: 0 }}
             >
-              <Image
-                src={activeComp.image}
-                alt={activeComp.title}
-                fill
-                priority
-                sizes="(max-width: 1024px) 95vw, 75vw"
-                className="object-contain transition-transform duration-700 ease-out group-hover:scale-[1.015]"
-                style={{ imageRendering: "auto" }}
+              <ArtworkStageShader
+                activeId={activeId}
+                onDetailClick={() => setIsDetailOpen(true)}
+                isEmbeddedInHero={isEmbeddedInHero}
               />
             </div>
-
-            {/* Incoming Artwork Plate during Directional Transition */}
-            {incomingComp && (
-              <div
-                ref={incomingImageRef}
-                className={`absolute inset-0 w-full ${incomingComp.aspect} ${incomingComp.containerShape} ${
-                  isEmbeddedInHero ? "max-h-[38vh] sm:max-h-[40vh] lg:max-h-[42vh]" : "max-h-[72vh]"
-                } pointer-events-none z-10 shadow-2xl`}
-              >
-                <Image
-                  src={incomingComp.image}
-                  alt={incomingComp.title}
-                  fill
-                  sizes="(max-width: 1024px) 95vw, 75vw"
-                  className="object-contain"
-                />
-              </div>
-            )}
 
             {/* Minimal Editorial Title & Fullscreen Action */}
             <div
               className={`w-full flex items-center justify-between ${
-                isEmbeddedInHero ? "mt-2 pt-1.5" : "mt-8 pt-6"
+                isEmbeddedInHero ? "mt-2.5 pt-2" : "mt-8 pt-6"
               } border-t border-[#090909]/10 text-[#706D68]`}
             >
               <span className="text-xs sm:text-sm font-sans tracking-[0.18em] uppercase text-[#090909] font-bold">
-                {incomingComp ? incomingComp.title : activeComp.title}
+                {activeComp.title}
               </span>
 
               <button
