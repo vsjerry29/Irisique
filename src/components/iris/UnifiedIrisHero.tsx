@@ -932,8 +932,9 @@ export default function UnifiedIrisHero({
       targetY: 0.20,
     };
 
+    // Hero headline and CTA are immediately visible from frame 0 matching canonical editorial design
     if (heroTextRef.current) {
-      gsap.set(heroTextRef.current, { opacity: 0, y: 16 });
+      gsap.set(heroTextRef.current, { opacity: 1, y: 0 });
     }
 
     const introTimeline = gsap.timeline({
@@ -963,18 +964,9 @@ export default function UnifiedIrisHero({
         0.00
       );
 
-      // Hero Typography Reveal: Starts early at 0.40s for immediate editorial presence
+      // Hero Typography remains stable and visible
       if (heroTextRef.current) {
-        introTimeline.to(
-          heroTextRef.current,
-          {
-            opacity: 1,
-            y: 0,
-            duration: 0.85,
-            ease: "power2.out",
-          },
-          0.40
-        );
+        introTimeline.set(heroTextRef.current, { opacity: 1, y: 0 }, 0.00);
       }
 
       // 0.60–1.80s: Stroma Cavity Travel (pullback 5.0 -> 2.6)
@@ -1050,7 +1042,7 @@ export default function UnifiedIrisHero({
       macroUniforms.uScrollRotation.value = 0.0;
       macroUniforms.uMasterOpacity.value = 1.0;
 
-      if (heroTextRef.current) gsap.set(heroTextRef.current, { opacity: 0, y: 16 });
+      if (heroTextRef.current) gsap.set(heroTextRef.current, { opacity: 1, y: 0 });
 
       renderer.render(scene, camera);
 
@@ -1072,7 +1064,7 @@ export default function UnifiedIrisHero({
         pin: true,
         pinSpacing: true,
         start: "top top",
-        end: () => `+=${Math.round(window.innerHeight * 1.15)}`, // Elegant 115vh scroll travel (rotation -> immersion -> seam)
+        end: () => `+=${Math.round(window.innerHeight * 1.55)}`, // Generous 155vh scroll travel (rotation -> immersion -> seam -> gallery dwell)
         scrub: 0.6,   // Liquid-smooth 0.6s catchup
         invalidateOnRefresh: true,
         refreshPriority: 10,
@@ -1083,7 +1075,7 @@ export default function UnifiedIrisHero({
           }
 
           // Reverse scroll restoration: Restore hero typography at top
-          if (self.progress <= 0.02 && introTimeline && introTimeline.progress() >= 0.5) {
+          if (self.progress <= 0.02) {
             if (heroTextRef.current) gsap.set(heroTextRef.current, { opacity: 1, y: 0 });
           }
         },
@@ -1298,14 +1290,14 @@ export default function UnifiedIrisHero({
         material.uniforms.uRefractShift.value = refractShift;
       });
 
-      // ── ASYMMETRIC PHOTOGRAPHIC SEAM COORDINATOR (Codrops / Mersis Transition: 0.70 -> 0.94) ──
+      // ── ASYMMETRIC PHOTOGRAPHIC SEAM COORDINATOR (Codrops / Mersis Transition: 0.70 -> 0.88) ──
       let seamP = 0.0;
       if (p <= 0.70) {
         seamP = 0.0;
-      } else if (p >= 0.94) {
+      } else if (p >= 0.88) {
         seamP = 1.0;
       } else {
-        seamP = (p - 0.70) / 0.24;
+        seamP = (p - 0.70) / 0.18;
       }
       const { clipPath, edgeLine } = computePhotographicSeamPath(seamP);
 
@@ -1322,7 +1314,7 @@ export default function UnifiedIrisHero({
           exposureOverlayRef.current.style.visibility = "hidden";
         } else {
           exposureOverlayRef.current.style.visibility = "visible";
-          if (p >= 0.94) {
+          if (p >= 0.88) {
             exposureOverlayRef.current.style.clipPath = "none";
           } else {
             exposureOverlayRef.current.style.clipPath = "url(#photographicSeamClip)";
@@ -1330,12 +1322,12 @@ export default function UnifiedIrisHero({
         }
       }
 
-      // STATE D: Matched Solo Artwork Plate Cross-fade (0.72 -> 0.88)
+      // STATE D: Matched Solo Artwork Plate Cross-fade (0.72 -> 0.86)
       if (matchedSoloPlateRef.current) {
         if (p <= 0.72) {
           matchedSoloPlateRef.current.style.opacity = "0";
-        } else if (p <= 0.88) {
-          const t = (p - 0.72) / 0.16;
+        } else if (p <= 0.86) {
+          const t = (p - 0.72) / 0.14;
           const s = t * t * (3.0 - 2.0 * t);
           matchedSoloPlateRef.current.style.opacity = s.toFixed(3);
         } else {
@@ -1343,15 +1335,15 @@ export default function UnifiedIrisHero({
         }
       }
 
-      // STATE E: Emerging Gallery Heading and Category Controls (0.80 -> 1.00)
+      // STATE E: Emerging Gallery Heading and Category Controls (0.76 -> 0.88)
       if (emergingGalleryHeaderRef.current && emergingCategoryBarRef.current) {
-        if (p <= 0.80) {
+        if (p <= 0.76) {
           emergingGalleryHeaderRef.current.style.opacity = "0";
           emergingGalleryHeaderRef.current.style.transform = "translateY(20px)";
           emergingCategoryBarRef.current.style.opacity = "0";
           emergingCategoryBarRef.current.style.transform = "translateY(20px)";
-        } else if (p < 1.00) {
-          const t = (p - 0.80) / 0.20;
+        } else if (p < 0.88) {
+          const t = (p - 0.76) / 0.12;
           emergingGalleryHeaderRef.current.style.opacity = t.toFixed(3);
           emergingGalleryHeaderRef.current.style.transform = `translateY(${((1 - t) * 20).toFixed(1)}px)`;
           emergingCategoryBarRef.current.style.opacity = t.toFixed(3);
@@ -1366,12 +1358,15 @@ export default function UnifiedIrisHero({
 
       // Canvas pointer-events and opacity: enabled during hero, dissolved when Solo plate settled
       if (canvas) {
-        if (p <= 0.88) {
+        if (p <= 0.82) {
           canvas.style.opacity = "1";
           canvas.style.pointerEvents = "auto";
+        } else if (p <= 0.88) {
+          const t = (p - 0.82) / 0.06;
+          canvas.style.opacity = Math.max(0, 1.0 - t).toFixed(3);
+          canvas.style.pointerEvents = "none";
         } else {
-          const tDissolve = (p - 0.88) / 0.12;
-          canvas.style.opacity = Math.max(0, 1.0 - tDissolve).toFixed(3);
+          canvas.style.opacity = "0";
           canvas.style.pointerEvents = "none";
         }
       }
@@ -1547,7 +1542,7 @@ export default function UnifiedIrisHero({
         {/* Layer 4: Hero Typography Overlay (Phase 1 & 2: Glides out on scroll, restored on reverse) */}
         <div
           ref={heroTextRef}
-          className="pointer-events-none absolute inset-0 z-25 opacity-0"
+          className="pointer-events-none absolute inset-0 z-30 opacity-100"
         >
           <HeroUI />
         </div>
