@@ -1497,7 +1497,7 @@ export default function UnifiedIrisHero({
       <section
         ref={containerRef}
         data-section="unified-iris"
-        className={`relative z-20 w-full h-screen overflow-hidden select-none ${className}`}
+        className={`hero-iris relative z-20 w-full h-screen overflow-hidden select-none ${className}`}
       >
         {/* Layer 0: Darkroom Background (#090909) */}
         <div className="absolute inset-0 bg-[#090909] z-0 pointer-events-none" />
